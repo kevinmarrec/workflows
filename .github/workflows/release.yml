@@ -62,7 +62,8 @@ jobs:
       actions: write
 
     steps:
-    - name: Cleanup skipped workflow runs on main branch
-      run: gh run list --workflow ${{ inputs.workflow-cleanup }} --branch main --status skipped --json databaseId --jq '.[].databaseId' | xargs -rn 1 gh run delete
-      env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Cleanup skipped workflow runs on main branch
+        run: gh run list -R $REPO --workflow ${{ inputs.workflow-cleanup }} --branch main --status skipped --json databaseId --jq '.[].databaseId' | xargs -rn 1 gh run delete -R $REPO
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
