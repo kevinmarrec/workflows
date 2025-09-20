@@ -11,8 +11,8 @@ inputs:
     default: false
 
   node-version:
-    description: "Version Spec of the version to use. Examples: 12.x, 10.15.1, >=10.15.0."
-    default: "lts/*"
+    description: 'Version Spec of the version to use. Examples: 12.x, 10.15.1, >=10.15.0.'
+    default: 'lts/*'
 
   auto-install:
     description: Whether to automatically install dependencies.
@@ -37,7 +37,7 @@ runs:
       with:
         node-version: ${{ inputs.node-version }}
         package-manager-cache: false
-        registry-url: "https://registry.npmjs.org"
+        registry-url: 'https://registry.npmjs.org'
 
     - name: Install dependencies
       shell: bash

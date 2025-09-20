@@ -4,10 +4,17 @@ on:
   workflow_call:
     inputs:
       build:
+        description: The command to build the project
+        required: false
+        type: string
+        default: 'bun run build'
+      publish:
+        description: Whether to publish the package
         required: false
         type: boolean
-        default: true
+        default: false
       workflow-cleanup:
+        description: 'The workflow where skipped runs on main branch should be cleaned up (ex: ci.yml)'
         required: false
         type: string
         default: ''
@@ -28,14 +35,16 @@ jobs:
           fetch-all: true
 
       - name: Build
-        run: bun run build
+        run: ${{ inputs.build }}
         if: ${{ inputs.build }}
 
       - name: Update npm
         run: npm install -g npm@latest
+        if: ${{ inputs.publish }}
 
       - name: Publish
         run: npm publish --access public --tag ${{ contains(github.ref_name, 'beta') && 'beta' || 'latest' }}
+        if: ${{ inputs.publish }}
 
       - name: Create release notes
         run: bunx changelogithub
