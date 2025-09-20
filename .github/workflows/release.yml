@@ -22,7 +22,7 @@ jobs:
       id-token: write
 
     steps:
-      - name: Set up Bun
+      - name: Setup Bun
         uses: kevinmarrec/workflows/setup-bun@v1
         with:
           fetch-all: true
