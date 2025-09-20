@@ -1,0 +1,59 @@
+name: Release
+
+on:
+  workflow_call:
+    inputs:
+      build:
+        required: false
+        type: boolean
+        default: true
+      workflow-cleanup:
+        required: false
+        type: string
+        default: ''
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      id-token: write
+
+    steps:
+      - name: Set up Bun
+        uses: kevinmarrec/workflows/setup-bun@v1
+        with:
+          fetch-all: true
+
+      - name: Build
+        run: bun run build
+        if: ${{ inputs.build }}
+
+      - name: Update npm
+        run: npm install -g npm@latest
+
+      - name: Publish
+        run: npm publish --access public --tag ${{ contains(github.ref_name, 'beta') && 'beta' || 'latest' }}
+
+      - name: Create release notes
+        run: bunx changelogithub
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  workflow-cleanup:
+    name: Workflow Cleanup
+    runs-on: ubuntu-latest
+
+    if: ${{ inputs.workflow-cleanup }}
+
+    permissions:
+      actions: write
+
+    steps:
+    - name: Cleanup skipped workflow runs on main branch
+      run: gh run list --workflow ${{ inputs.workflow-cleanup }} --branch main --status skipped --json databaseId --jq '.[].databaseId' | xargs -rn 1 gh run delete
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
