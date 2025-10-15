@@ -7,7 +7,7 @@
     "lint": "eslint ."
   },
   "devDependencies": {
-    "@kevinmarrec/eslint-config": "^1.5.1",
+    "@kevinmarrec/eslint-config": "^1.5.2",
     "eslint": "^9.37.0"
   }
 }
