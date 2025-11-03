@@ -4,11 +4,11 @@ description: Setup Bun environment
 inputs:
   persist-credentials:
     description: Whether to configure the token or SSH key with the local git config
-    default: false
+    default: 'false'
 
   fetch-all:
     description: Whether to fetch all history for all branches and tags.
-    default: false
+    default: 'false'
 
   node-version:
     description: 'Version Spec of the version to use. Examples: 12.x, 10.15.1, >=10.15.0.'
@@ -16,7 +16,7 @@ inputs:
 
   auto-install:
     description: Whether to automatically install dependencies.
-    default: true
+    default: 'true'
 
 runs:
   using: composite
@@ -24,7 +24,7 @@ runs:
     - name: Checkout
       uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
       with:
-        persist-credentials: ${{ inputs.persist-credentials }}
+        persist-credentials: ${{ inputs.persist-credentials == 'true' }}
         fetch-depth: "${{ inputs.fetch-all == 'true' && '0' || '1' }}"
 
     - name: Setup Bun
@@ -42,4 +42,4 @@ runs:
     - name: Install dependencies
       shell: bash
       run: bun install --frozen-lockfile
-      if: ${{ inputs.auto-install }}
+      if: ${{ inputs.auto-install == 'true' }}
