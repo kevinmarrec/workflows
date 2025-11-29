@@ -4,7 +4,7 @@
   "workspaces": {
     "": {
       "devDependencies": {
-        "@kevinmarrec/eslint-config": "^1.5.7",
+        "@kevinmarrec/eslint-config": "^1.5.8",
         "eslint": "^9.39.1",
       },
     },
@@ -70,7 +70,7 @@
 
     "@jridgewell/sourcemap-codec": ["@jridgewell/sourcemap-codec@1.5.5", "", {}, "sha512-cYQ9310grqxueWbl+WuIUIaiUaDcj7WOq5fVhEljNVgRfOUhY9fy2zTvfoqWsnebh8Sl70VScFbICvJnLKB0Og=="],
 
-    "@kevinmarrec/eslint-config": ["@kevinmarrec/eslint-config@1.5.7", "", { "dependencies": { "@antfu/eslint-config": "^6.2.0", "@unocss/eslint-plugin": "^66.5.7", "defu": "^6.1.4", "eslint-flat-config-utils": "^2.1.4", "eslint-plugin-format": "^1.0.2", "eslint-plugin-vuejs-accessibility": "^2.4.1", "tinyglobby": "^0.2.15" }, "peerDependencies": { "eslint": ">=9.20.0" } }, "sha512-1lnXjpZbNbsW6PXz26hY5pg/wl2by65hKVc0vZYuVfPi1Iq1jyNGyw3QLprd0rMoYmJ4hmH+gajUCfuSNKt+2Q=="],
+    "@kevinmarrec/eslint-config": ["@kevinmarrec/eslint-config@1.5.8", "", { "dependencies": { "@antfu/eslint-config": "^6.2.0", "@unocss/eslint-plugin": "^66.5.9", "defu": "^6.1.4", "eslint-flat-config-utils": "^2.1.4", "eslint-plugin-format": "^1.0.2", "eslint-plugin-vuejs-accessibility": "^2.4.1", "tinyglobby": "^0.2.15" }, "peerDependencies": { "eslint": ">=9.20.0" } }, "sha512-dUDLrm1TtKhPQqcMqmIWrGXRd7fkLVfqEidKLwtFspC9xVWYQg9Jfbj8PZmwd3CV7jHbCje4fOVUlm4J2cu7hg=="],
 
     "@nodelib/fs.scandir": ["@nodelib/fs.scandir@2.1.5", "", { "dependencies": { "@nodelib/fs.stat": "2.0.5", "run-parallel": "^1.1.9" } }, "sha512-vq24Bq3ym5HEQm2NKCr3yXDwjc7vTsEThRDnkp2DK9p1uqLR+DHurm/NOTo0KG7HYHU7eppKZj3MyqYuMBf62g=="],
 
