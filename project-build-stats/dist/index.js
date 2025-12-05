@@ -140,9 +140,9 @@ ${A}`;try{let{data:Y}=await B.rest.issues.listComments({owner:I.repo.owner,repo:
 
 ${M}`)}let N=G.join(`
 
-`);if(RA.summary.addRaw(`# Project Build Stats
+`);if(RA.summary.addRaw(N),await RA.summary.write(),RA.startGroup("Full summary"),RA.info(N),RA.endGroup(),RA.setOutput("has-changes",D.toString()),RA.info(`Detected changes ? ${D?"yes":"no"}`),D&&JF.context.eventName==="pull_request"&&E){let U=`# Build Stats Diff
 
-${N}`),await RA.summary.write(),RA.startGroup("Full summary"),RA.info(N),RA.endGroup(),RA.setOutput("has-changes",D.toString()),RA.info(`Detected changes ? ${D?"yes":"no"}`),D&&JF.context.eventName==="pull_request"&&E)await cSA(N);if(Y){let U=`${B}-${JF.context.sha}`;RA.info(`Attempting to save baseline cache with key: ${U}`);try{await _Z.saveCache([Q],U),RA.info("Baseline cache saved successfully (Cache reserved and uploaded)")}catch(Z){RA.warning(`Failed to save baseline cache: ${Z instanceof Error?Z.message:String(Z)}`)}}else RA.info("Skipping baseline cache save (not on main branch)")}catch(A){RA.setFailed(A instanceof Error?A.message:String(A))}}uSA();
+${N}`;await cSA(U)}if(Y){let U=`${B}-${JF.context.sha}`;RA.info(`Attempting to save baseline cache with key: ${U}`);try{await _Z.saveCache([Q],U),RA.info("Baseline cache saved successfully (Cache reserved and uploaded)")}catch(Z){RA.warning(`Failed to save baseline cache: ${Z instanceof Error?Z.message:String(Z)}`)}}else RA.info("Skipping baseline cache save (not on main branch)")}catch(A){RA.setFailed(A instanceof Error?A.message:String(A))}}uSA();
 
-//# debugId=3B813C28A566E37564756E2164756E21
+//# debugId=B4885CF75321ADE164756E2164756E21
 //# sourceMappingURL=index.js.map

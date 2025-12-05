@@ -335,7 +335,7 @@ async function main(): Promise<void> {
     const fullSummary = summaryParts.join('\n\n')
 
     // Write to step summary
-    core.summary.addRaw(`# Project Build Stats\n\n${fullSummary}`)
+    core.summary.addRaw(fullSummary)
     await core.summary.write()
 
     core.startGroup('Full summary')
@@ -349,7 +349,8 @@ async function main(): Promise<void> {
 
     // Comment on PR if there are changes and comment-on-pr is enabled
     if (overallHasChanges && github.context.eventName === 'pull_request' && prComment) {
-      await commentOnPR(fullSummary)
+      const fullSummaryWithTitle = `# Build Stats Diff\n\n${fullSummary}`
+      await commentOnPR(fullSummaryWithTitle)
     }
 
     // Save cache only on main branch (to create baseline for PR comparisons)
