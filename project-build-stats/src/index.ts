@@ -335,7 +335,7 @@ async function main(): Promise<void> {
     const fullSummary = summaryParts.join('\n\n')
 
     // Write to step summary
-    core.summary.addRaw(fullSummary)
+    core.summary.addRaw(`# Project Build Stats\n\n${fullSummary}`)
     await core.summary.write()
 
     core.startGroup('Full summary')
