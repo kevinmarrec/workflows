@@ -295,8 +295,10 @@ async function main(): Promise<void> {
     // On main branch, we skip restore since we're building the baseline
     let cacheHit: string | undefined
     if (!isMainBranch) {
-      core.info(`Restoring cache with key: ${cacheKey}`)
-      cacheHit = await cache.restoreCache([cachePathBase], cacheKey)
+      // Use restore key pattern to find the latest main branch cache
+      const restoreKeyPattern = `${cacheKey}-`
+      core.info(`Restoring cache with restore key pattern: ${restoreKeyPattern}`)
+      cacheHit = await cache.restoreCache([cachePathBase], cacheKey, [restoreKeyPattern])
       if (cacheHit) {
         core.info(`Cache restored from key: ${cacheHit}`)
       }
@@ -351,36 +353,24 @@ async function main(): Promise<void> {
     }
 
     // Save cache only on main branch (to create baseline for PR comparisons)
+    // Use unique key with commit SHA to ensure cache updates on each commit
     if (isMainBranch) {
-      core.info(`Attempting to save baseline cache with key: ${cacheKey}`)
+      const actualCacheKey = `${cacheKey}-${github.context.sha}`
+      core.info(`Attempting to save baseline cache with key: ${actualCacheKey}`)
       try {
-        await cache.saveCache([cachePathBase], cacheKey)
+        await cache.saveCache([cachePathBase], actualCacheKey)
         core.info('Baseline cache saved successfully (Cache reserved and uploaded)')
       }
       catch (error) {
-        // Cache save failures shouldn't fail the action
-        const errorMessage = error instanceof Error ? error.message : String(error)
-
-        // Check if this is a concurrent cache save conflict (expected when multiple jobs run simultaneously)
-        if (errorMessage.includes('Unable to reserve cache') || errorMessage.includes('another job may be creating this cache')) {
-          core.info('Cache save skipped: another job is already saving this cache (this is expected when multiple jobs run concurrently)')
-        }
-        else {
-          core.warning(`Failed to save cache: ${errorMessage}`)
-        }
+        core.warning(`Failed to save baseline cache: ${error instanceof Error ? error.message : String(error)}`)
       }
     }
     else {
-      core.info('Skipping cache save (not on main branch)')
+      core.info('Skipping baseline cache save (not on main branch)')
     }
   }
   catch (error) {
-    if (error instanceof Error) {
-      core.setFailed(error.message)
-    }
-    else {
-      core.setFailed(String(error))
-    }
+    core.setFailed(error instanceof Error ? error.message : String(error))
   }
 }
 
