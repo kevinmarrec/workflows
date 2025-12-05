@@ -289,14 +289,23 @@ async function main(): Promise<void> {
       return core.setFailed('At least one directory must be provided')
     }
 
-    // Restore cache
-    core.info(`Restoring cache with key: ${cacheKey}`)
-    const cacheHit = await cache.restoreCache([cachePathBase], cacheKey)
-    if (cacheHit) {
-      core.info(`Cache restored from key: ${cacheHit}`)
+    const isMainBranch = github.context.ref === 'refs/heads/main'
+
+    // Restore cache only on non-main branches (for comparison)
+    // On main branch, we skip restore since we're building the baseline
+    let cacheHit: string | undefined
+    if (!isMainBranch) {
+      core.info(`Restoring cache with key: ${cacheKey}`)
+      cacheHit = await cache.restoreCache([cachePathBase], cacheKey)
+      if (cacheHit) {
+        core.info(`Cache restored from key: ${cacheHit}`)
+      }
+      else {
+        core.info('No cache found')
+      }
     }
     else {
-      core.info('No cache found')
+      core.info('Skipping cache restore on main branch (no comparison needed)')
     }
 
     const summaryParts: string[] = []
@@ -341,8 +350,8 @@ async function main(): Promise<void> {
       await commentOnPR(fullSummary)
     }
 
-    // Save cache (only on main branch)
-    if (github.context.ref === 'refs/heads/main') {
+    // Save cache only on main branch (to create baseline for PR comparisons)
+    if (isMainBranch) {
       core.info(`Saving cache with key: ${cacheKey}`)
       try {
         await cache.saveCache([cachePathBase], cacheKey)
@@ -350,11 +359,14 @@ async function main(): Promise<void> {
       }
       catch (error) {
         // Cache save failures shouldn't fail the action
-        if (error instanceof Error) {
-          core.warning(`Failed to save cache: ${error.message}`)
+        const errorMessage = error instanceof Error ? error.message : String(error)
+
+        // Check if this is a concurrent cache save conflict (expected when multiple jobs run simultaneously)
+        if (errorMessage.includes('Unable to reserve cache') || errorMessage.includes('another job may be creating this cache')) {
+          core.info('Cache save skipped: another job is already saving this cache (this is expected when multiple jobs run concurrently)')
         }
         else {
-          core.warning(`Failed to save cache: ${String(error)}`)
+          core.warning(`Failed to save cache: ${errorMessage}`)
         }
       }
     }
