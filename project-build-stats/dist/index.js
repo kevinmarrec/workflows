@@ -140,7 +140,7 @@ ${A}`;try{let{data:Y}=await B.rest.issues.listComments({owner:I.repo.owner,repo:
 
 ${M}`)}let N=G.join(`
 
-`);if(KA.summary.addRaw(N),await KA.summary.write(),KA.startGroup("Full summary"),KA.info(N),KA.endGroup(),KA.setOutput("has-changes",D.toString()),KA.info(`Detected changes ? ${D?"yes":"no"}`),D&&CJ.context.eventName==="pull_request"&&E)await E_A(N);if(Y){KA.info(`Saving cache with key: ${B}`);try{await _Z.saveCache([Q],B),KA.info("Cache saved successfully")}catch(U){let Z=U instanceof Error?U.message:String(U);if(Z.includes("Unable to reserve cache")||Z.includes("another job may be creating this cache"))KA.info("Cache save skipped: another job is already saving this cache (this is expected when multiple jobs run concurrently)");else KA.warning(`Failed to save cache: ${Z}`)}}else KA.info("Skipping cache save (not on main branch)")}catch(A){if(A instanceof Error)KA.setFailed(A.message);else KA.setFailed(String(A))}}C_A();
+`);if(KA.summary.addRaw(N),await KA.summary.write(),KA.startGroup("Full summary"),KA.info(N),KA.endGroup(),KA.setOutput("has-changes",D.toString()),KA.info(`Detected changes ? ${D?"yes":"no"}`),D&&CJ.context.eventName==="pull_request"&&E)await E_A(N);if(Y){KA.info(`Attempting to save baseline cache with key: ${B}`);try{await _Z.saveCache([Q],B),KA.info("Baseline cache saved successfully (Cache reserved and uploaded)")}catch(U){let Z=U instanceof Error?U.message:String(U);if(Z.includes("Unable to reserve cache")||Z.includes("another job may be creating this cache"))KA.info("Cache save skipped: another job is already saving this cache (this is expected when multiple jobs run concurrently)");else KA.warning(`Failed to save cache: ${Z}`)}}else KA.info("Skipping cache save (not on main branch)")}catch(A){if(A instanceof Error)KA.setFailed(A.message);else KA.setFailed(String(A))}}C_A();
 
-//# debugId=A8FF0BD38FDC0A5664756E2164756E21
+//# debugId=CF919FAA829B3E2C64756E2164756E21
 //# sourceMappingURL=index.js.map

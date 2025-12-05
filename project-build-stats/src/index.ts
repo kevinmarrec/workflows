@@ -352,10 +352,10 @@ async function main(): Promise<void> {
 
     // Save cache only on main branch (to create baseline for PR comparisons)
     if (isMainBranch) {
-      core.info(`Saving cache with key: ${cacheKey}`)
+      core.info(`Attempting to save baseline cache with key: ${cacheKey}`)
       try {
         await cache.saveCache([cachePathBase], cacheKey)
-        core.info('Cache saved successfully')
+        core.info('Baseline cache saved successfully (Cache reserved and uploaded)')
       }
       catch (error) {
         // Cache save failures shouldn't fail the action
