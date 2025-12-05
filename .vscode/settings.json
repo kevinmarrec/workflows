@@ -22,6 +22,7 @@
   ],
 
   "eslint.validate": [
+    "github-actions-workflow",
     "javascript",
     "typescript",
     "markdown",

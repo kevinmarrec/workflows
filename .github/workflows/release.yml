@@ -7,7 +7,7 @@ on:
         description: The command to build the project
         required: false
         type: string
-        default: 'bun run build'
+        default: bun run build
       publish:
         description: Whether to publish the package
         required: false
