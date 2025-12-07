@@ -5,6 +5,7 @@
     "": {
       "devDependencies": {
         "@kevinmarrec/eslint-config": "^1.5.9",
+        "@kevinmarrec/tsconfig": "^1.5.9",
         "@vitest/coverage-v8": "4.0.15",
         "eslint": "^9.39.1",
         "knip": "^5.71.0",
@@ -193,6 +194,8 @@
     "@jridgewell/trace-mapping": ["@jridgewell/trace-mapping@0.3.31", "", { "dependencies": { "@jridgewell/resolve-uri": "^3.1.0", "@jridgewell/sourcemap-codec": "^1.4.14" } }, "sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw=="],
 
     "@kevinmarrec/eslint-config": ["@kevinmarrec/eslint-config@1.5.9", "", { "dependencies": { "@antfu/eslint-config": "^6.2.0", "@unocss/eslint-plugin": "^66.5.10", "defu": "^6.1.4", "eslint-flat-config-utils": "^2.1.4", "eslint-plugin-format": "^1.0.2", "eslint-plugin-vuejs-accessibility": "^2.4.1", "tinyglobby": "^0.2.15" }, "peerDependencies": { "eslint": ">=9.20.0" } }, "sha512-7hGSVHrNKLyZkn4pois8w+ON/Dmd3maoAmoTDre+RcZImJaI83xfliuv1m07DEkwCERfPOc3X7IvgMY7dX2ZJA=="],
+
+    "@kevinmarrec/tsconfig": ["@kevinmarrec/tsconfig@1.5.9", "", {}, "sha512-Hjh6ytaqnLc0yAikzJSmJ/O2fHkoHoKPwloHaxcN9VmGaqTanb5Ks72YCv1oSis+sR9ITyi9Dz57zPyPzbttsg=="],
 
     "@napi-rs/wasm-runtime": ["@napi-rs/wasm-runtime@1.1.0", "", { "dependencies": { "@emnapi/core": "^1.7.1", "@emnapi/runtime": "^1.7.1", "@tybys/wasm-util": "^0.10.1" } }, "sha512-Fq6DJW+Bb5jaWE69/qOE0D1TUN9+6uWhCeZpdnSBk14pjLcCWR7Q8n49PTSPHazM37JqrsdpEthXy2xn6jWWiA=="],
 
