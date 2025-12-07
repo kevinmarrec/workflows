@@ -8,11 +8,13 @@
   ],
   "scripts": {
     "check": "bun run check:eslint && bun run check:unused && bun run check:types",
+    "check:artifacts": "bun run build:actions && ! (git status --porcelain | grep '^.M' | grep dist)",
     "check:eslint": "eslint . --cache",
     "check:types": "tsc --noEmit",
     "check:unused": "knip -n",
     "build:actions": "bun -F '*' build",
     "lint": "eslint .",
+    "prepare": "bunx simple-git-hooks",
     "test": "vitest",
     "test:coverage": "vitest --coverage"
   },
@@ -24,5 +26,8 @@
     "knip": "^5.71.0",
     "typescript": "~5.9.3",
     "vitest": "^4.0.15"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "echo 'Pre-commit checks' && bun run check:artifacts"
   }
 }
