@@ -43,6 +43,8 @@ jobs:
     steps:
       - name: Setup Bun
         uses: kevinmarrec/workflows/setup-bun@main
+        with:
+          persist-credentials: true
 
       - name: Build actions
         run: bun run build:actions
@@ -50,5 +52,5 @@ jobs:
       - name: Commit changes
         uses: stefanzweifel/git-auto-commit-action@28e16e81777b558cc906c8750092100bbb34c5e3 # v7.0.0
         with:
-          commit_message: 'chore: update build artifacts'
+          commit_message: 'chore(actions): update build artifacts'
           file_pattern: filesize-diff/dist
