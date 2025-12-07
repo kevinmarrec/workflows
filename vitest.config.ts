@@ -16,6 +16,7 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       include: ['filesize-diff/src/**/*.ts'],
+      exclude: ['filesize-diff/src/run.ts'],
       reporter: ['text', 'text-summary', 'json', 'json-summary'],
     },
   },

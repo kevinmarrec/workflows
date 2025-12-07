@@ -3,9 +3,9 @@
   "type": "module",
   "private": true,
   "description": "GitHub Action for analyzing file size differences between a branch and the main branch",
-  "main": "dist/index.js",
+  "main": "dist/run.js",
   "scripts": {
-    "build": "bun build src/index.ts --outdir dist --target node --minify --sourcemap"
+    "build": "bun build src/run.ts --outdir dist --target node --minify --sourcemap"
   },
   "dependencies": {
     "@actions/cache": "^4.1.0",

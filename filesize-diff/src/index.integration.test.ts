@@ -13,6 +13,8 @@ describe('main function integration', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.spyOn(core, 'startGroup').mockImplementation(() => {})
+    vi.spyOn(core, 'endGroup').mockImplementation(() => {})
     tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'))
     cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cache-'))
   })
@@ -27,8 +29,8 @@ describe('main function integration', () => {
     vi.spyOn(core, 'getBooleanInput').mockReturnValue(false)
     vi.spyOn(core, 'setFailed').mockImplementation(() => {})
 
-    const { main } = await import('./index')
-    await main()
+    const { run } = await import('./index')
+    await run()
 
     expect(core.setFailed).toHaveBeenCalledWith('At least one directory must be provided')
   })
@@ -59,8 +61,8 @@ describe('main function integration', () => {
       repo: { owner: 'owner', repo: 'repo' },
     } as any)
 
-    const { main } = await import('./index')
-    await main()
+    const { run } = await import('./index')
+    await run()
 
     expect(core.info).toHaveBeenCalledWith('Skipping cache restore on main branch (no comparison needed)')
     expect(cache.saveCache).toHaveBeenCalled()
@@ -91,8 +93,8 @@ describe('main function integration', () => {
       repo: { owner: 'owner', repo: 'repo' },
     } as any)
 
-    const { main } = await import('./index')
-    await main()
+    const { run } = await import('./index')
+    await run()
 
     expect(cache.restoreCache).toHaveBeenCalled()
     expect(core.setOutput).toHaveBeenCalled()
@@ -137,8 +139,8 @@ describe('main function integration', () => {
       repo: { owner: 'owner', repo: 'repo' },
     } as any)
 
-    const { main } = await import('./index')
-    await main()
+    const { run } = await import('./index')
+    await run()
 
     expect(mockOctokit.rest.issues.createComment).toHaveBeenCalled()
   })
@@ -170,15 +172,15 @@ describe('main function integration', () => {
       repo: { owner: 'owner', repo: 'repo' },
     } as any)
 
-    const { main } = await import('./index')
-    await main()
+    const { run } = await import('./index')
+    await run()
 
     expect(core.warning).toHaveBeenCalledWith(expect.stringContaining('Failed to save baseline cache'))
 
     // Test non-Error exception
     vi.clearAllMocks()
     vi.spyOn(cache, 'saveCache').mockRejectedValue('String error')
-    await main()
+    await run()
     expect(core.warning).toHaveBeenCalledWith(expect.stringContaining('Failed to save baseline cache'))
   })
 
@@ -188,8 +190,8 @@ describe('main function integration', () => {
     })
     vi.spyOn(core, 'setFailed').mockImplementation(() => {})
 
-    const { main } = await import('./index')
-    await main()
+    const { run } = await import('./index')
+    await run()
 
     expect(core.setFailed).toHaveBeenCalledWith('Input error')
   })
@@ -201,8 +203,8 @@ describe('main function integration', () => {
     })
     vi.spyOn(core, 'setFailed').mockImplementation(() => {})
 
-    const { main } = await import('./index')
-    await main()
+    const { run } = await import('./index')
+    await run()
 
     expect(core.setFailed).toHaveBeenCalledWith('String error')
   })
@@ -235,8 +237,8 @@ describe('main function integration', () => {
       repo: { owner: 'owner', repo: 'repo' },
     } as any)
 
-    const { main } = await import('./index')
-    await main()
+    const { run } = await import('./index')
+    await run()
 
     expect(core.summary.addRaw).toHaveBeenCalled()
   })
@@ -273,8 +275,8 @@ describe('main function integration', () => {
       repo: { owner: 'owner', repo: 'repo' },
     } as any)
 
-    const { main } = await import('./index')
-    await main()
+    const { run } = await import('./index')
+    await run()
 
     // Verify has-changes is false and "no" message is logged
     const hasChangesCall = setOutputSpy.mock.calls.find(call => call[0] === 'has-changes')

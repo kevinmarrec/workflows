@@ -258,7 +258,7 @@ export async function commentOnPR(body: string): Promise<void> {
   }
 }
 
-export async function main(): Promise<void> {
+export async function run(): Promise<void> {
   try {
     const directoriesInput = core.getInput('directories', { required: true })
     const cachePathBase = core.getInput('cache-path') || '.github/cache/build-stats'
@@ -358,5 +358,3 @@ export async function main(): Promise<void> {
     core.setFailed(error instanceof Error ? error.message : String(error))
   }
 }
-
-main()

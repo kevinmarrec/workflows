@@ -186,6 +186,7 @@ describe('analyzeDirectory', () => {
   })
 
   it('should throw error if directory does not exist', async () => {
+    vi.spyOn(core, 'setFailed').mockImplementation(() => {})
     await expect(
       analyzeDirectory(path.join(tempDir, 'nonexistent'), {
         cachePath: path.join(cacheDir, 'cache.json'),
