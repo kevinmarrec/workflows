@@ -1,11 +1,10 @@
 import * as fs from 'node:fs'
-import * as path from 'node:path'
 
 import * as cache from '@actions/cache'
 import * as core from '@actions/core'
 import * as github from '@actions/github'
 import { filesize } from 'filesize'
-import { normalize } from 'pathe'
+import { basename, dirname, join, normalize } from 'pathe'
 import { glob } from 'tinyglobby'
 
 export interface FileStat {
@@ -43,7 +42,7 @@ export async function getFileStats(directory: string): Promise<FileStat[]> {
 
   const fileStats: FileStat[] = files.map(file => ({
     file: normalizeAssetFilename(file),
-    size: fs.statSync(path.join(directory, file)).size,
+    size: fs.statSync(join(directory, file)).size,
   }))
 
   fileStats.sort((a, b) => {
@@ -68,7 +67,7 @@ export function loadCachedStats(cachePath: string): FileStat[] | null {
 }
 
 export function saveStats(stats: FileStat[], cachePath: string): void {
-  const dir = path.dirname(cachePath)
+  const dir = dirname(cachePath)
   fs.mkdirSync(dir, { recursive: true })
   fs.writeFileSync(cachePath, JSON.stringify(stats, null, 2))
 }
@@ -108,13 +107,13 @@ export function formatTotalRow(
 export function getSectionName(directory: string): string | null {
   // Normalize path using pathe for cross-platform compatibility
   const normalizedDir = normalize(directory)
-  const dirName = path.basename(normalizedDir).toLowerCase()
+  const dirName = basename(normalizedDir).toLowerCase()
 
   // Check if directory name is a common build output directory
   const buildDirs = ['dist', 'build', 'out']
   if (buildDirs.includes(dirName)) {
     // Get parent directory
-    const parentPath = path.dirname(normalizedDir)
+    const parentPath = dirname(normalizedDir)
 
     // If parent is root (no meaningful parent), return null to skip header
     if (parentPath === '.' || parentPath === '/' || parentPath === normalizedDir) {
@@ -122,7 +121,7 @@ export function getSectionName(directory: string): string | null {
     }
 
     // Return parent directory name
-    const parentName = path.basename(parentPath)
+    const parentName = basename(parentPath)
     return parentName.charAt(0).toUpperCase() + parentName.slice(1)
   }
 
@@ -325,7 +324,7 @@ export async function run(): Promise<void> {
     for (const directory of directories) {
       // Use normalized directory path for cache filename to avoid collisions
       const cacheFileName = directory.replace(/\//g, '-').replace(/\\/g, '-')
-      const cachePath = path.join(cachePathBase, `${cacheFileName}.json`)
+      const cachePath = join(cachePathBase, `${cacheFileName}.json`)
       const sectionName = getSectionName(directory)
 
       core.info(`Analyzing ${directory}...`)
