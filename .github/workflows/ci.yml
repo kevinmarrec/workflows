@@ -28,7 +28,7 @@ jobs:
       - name: Check build:actions doesn't change git
         run: |
           bun run build:actions
-          git diff --exit-code || (echo "build:actions modified git tracked files" && exit 1)
+          git diff --name-only --exit-code || (echo "build:actions modified git tracked files" && exit 1)
 
       - name: Unit tests
         run: bun run test:coverage
