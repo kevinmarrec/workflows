@@ -25,4 +25,4 @@ uses: kevinmarrec/workflows/.github/workflows/release.yml@main
 ## Actions
 
 - [`setup-bun/action.yml`](./setup-bun/action.yml): Setup Bun, Node.js and installs dependencies
-- [`project-build-stats/action.yml`](./project-build-stats/action.yml): Analyze project build stats and comment on pull requests with stats changes
+- [`filesize-diff/action.yml`](./filesize-diff/action.yml): Analyze project build stats and comment on pull requests with stats changes
