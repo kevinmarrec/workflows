@@ -1,4 +1,4 @@
-name: Filesize Diff Analysis
+name: File size Diff Analysis
 description: Analyze file size differences between the current branch and main branch, and comment on PRs with changes
 
 inputs:

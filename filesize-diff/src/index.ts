@@ -333,7 +333,7 @@ export async function run(): Promise<void> {
 
     // Comment on PR if there are changes and comment-on-pr is enabled
     if (overallHasChanges && github.context.eventName === 'pull_request' && prComment) {
-      const fullSummaryWithTitle = `# Build Stats Diff\n\n${fullSummary}`
+      const fullSummaryWithTitle = `# File size Diff\n\n${fullSummary}`
       await commentOnPR(fullSummaryWithTitle)
     }
 
