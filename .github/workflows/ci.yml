@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Setup Bun
-        uses: kevinmarrec/workflows/setup-bun@v1
+        uses: kevinmarrec/workflows/setup-bun@main
 
       - name: Lint
         run: bun run lint
@@ -25,11 +25,6 @@ jobs:
       - name: Type check
         run: bun run check:types
 
-      - name: Check build:actions doesn't change git
-        run: |
-          bun run build:actions
-          git diff --name-only --exit-code || (echo "build:actions modified git tracked files" && exit 1)
-
       - name: Unit tests
         run: bun run test:coverage
 
@@ -38,3 +33,22 @@ jobs:
         with:
           file-coverage-mode: all
           comment-on: none
+
+  build-actions:
+    name: Build actions
+    needs: check-and-test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Setup Bun
+        uses: kevinmarrec/workflows/setup-bun@main
+
+      - name: Build actions
+        run: bun run build:actions
+
+      - name: Commit changes
+        uses: stefanzweifel/git-auto-commit-action@28e16e81777b558cc906c8750092100bbb34c5e3 # v7.0.0
+        with:
+          commit_message: 'chore: update build artifacts'
+          file_pattern: filesize-diff/dist
