@@ -12,6 +12,7 @@
     "@actions/core": "^1.11.1",
     "@actions/github": "^6.0.1",
     "filesize": "^11.0.13",
+    "pathe": "^1.1.2",
     "tinyglobby": "^0.2.15"
   }
 }

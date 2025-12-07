@@ -284,4 +284,53 @@ describe('main function integration', () => {
       expect(infoSpy).toHaveBeenCalledWith('Detected changes ? no')
     }
   })
+
+  it('should handle root-level build directories without section headers', async () => {
+    // Create a directory named "dist" and pass it as a relative path
+    // This tests the branch where sectionName is null (line 342)
+    const distDir = path.join(tempDir, 'dist')
+    fs.mkdirSync(distDir, { recursive: true })
+    fs.writeFileSync(path.join(distDir, 'file1.js'), 'content1')
+
+    // Change to tempDir so relative path 'dist' works
+    const originalCwd = process.cwd()
+    process.chdir(tempDir)
+
+    try {
+      const addRawSpy = vi.fn()
+      vi.spyOn(core, 'getInput').mockImplementation((name: string) => {
+        if (name === 'directories') return 'dist' // Use relative path to trigger null sectionName
+        if (name === 'cache-path') return cacheDir
+        return ''
+      })
+      vi.spyOn(core, 'getBooleanInput').mockReturnValue(false)
+      vi.spyOn(core, 'setOutput').mockImplementation(() => {})
+      vi.spyOn(core, 'info').mockImplementation(() => {})
+      vi.spyOn(core, 'summary', 'get').mockReturnValue({
+        addRaw: addRawSpy,
+        write: vi.fn().mockResolvedValue(undefined),
+      } as any)
+      vi.spyOn(cache, 'restoreCache').mockResolvedValue(undefined)
+      vi.spyOn(github, 'context', 'get').mockReturnValue({
+        ref: 'refs/heads/feature',
+        eventName: 'pull_request',
+        sha: 'abc123',
+        repo: { owner: 'owner', repo: 'repo' },
+      } as any)
+
+      const { run } = await import('./index')
+      await run()
+
+      // Verify that the summary was called and doesn't contain a section header (## Dist)
+      expect(addRawSpy).toHaveBeenCalled()
+      const summaryCall = addRawSpy.mock.calls[0][0]
+      // Should not contain section header for root-level dist directory
+      expect(summaryCall).not.toMatch(/^## Dist/m)
+      // Should contain the table content directly
+      expect(summaryCall).toContain('file1.js')
+    }
+    finally {
+      process.chdir(originalCwd)
+    }
+  })
 })

@@ -5,6 +5,7 @@ import * as cache from '@actions/cache'
 import * as core from '@actions/core'
 import * as github from '@actions/github'
 import { filesize } from 'filesize'
+import { normalize } from 'pathe'
 import { glob } from 'tinyglobby'
 
 export interface FileStat {
@@ -102,6 +103,31 @@ export function formatTotalRow(
       : `${filesize(totalDiff)} ✅`
 
   return `| **Total** | **${filesize(totalCached)}** | **${filesize(totalCurrent)}** | ${diffDisplay} |`
+}
+
+export function getSectionName(directory: string): string | null {
+  // Normalize path using pathe for cross-platform compatibility
+  const normalizedDir = normalize(directory)
+  const dirName = path.basename(normalizedDir).toLowerCase()
+
+  // Check if directory name is a common build output directory
+  const buildDirs = ['dist', 'build', 'out']
+  if (buildDirs.includes(dirName)) {
+    // Get parent directory
+    const parentPath = path.dirname(normalizedDir)
+
+    // If parent is root (no meaningful parent), return null to skip header
+    if (parentPath === '.' || parentPath === '/' || parentPath === normalizedDir) {
+      return null
+    }
+
+    // Return parent directory name
+    const parentName = path.basename(parentPath)
+    return parentName.charAt(0).toUpperCase() + parentName.slice(1)
+  }
+
+  // Default: use directory name
+  return dirName.charAt(0).toUpperCase() + dirName.slice(1)
 }
 
 export function generateDiffTable(
@@ -300,7 +326,7 @@ export async function run(): Promise<void> {
       // Use normalized directory path for cache filename to avoid collisions
       const cacheFileName = directory.replace(/\//g, '-').replace(/\\/g, '-')
       const cachePath = path.join(cachePathBase, `${cacheFileName}.json`)
-      const dirName = path.basename(directory)
+      const sectionName = getSectionName(directory)
 
       core.info(`Analyzing ${directory}...`)
 
@@ -313,7 +339,9 @@ export async function run(): Promise<void> {
         overallHasChanges = true
       }
 
-      summaryParts.push(`## ${dirName.charAt(0).toUpperCase() + dirName.slice(1)}\n\n${markdown}`)
+      // Only add section header if sectionName is not null
+      const sectionHeader = sectionName ? `## ${sectionName}\n\n` : ''
+      summaryParts.push(`${sectionHeader}${markdown}`)
     }
 
     const fullSummary = summaryParts.join('\n\n')
