@@ -1,17 +1,33 @@
 {
   "type": "module",
   "private": true,
-  "packageManager": "bun@1.3.3",
+  "packageManager": "bun@1.3.4",
   "license": "MIT",
   "workspaces": [
-    "project-build-stats"
+    "filesize-diff"
   ],
   "scripts": {
+    "check": "bun run check:eslint && bun run check:unused && bun run check:types",
+    "check:artifacts": "bun run build:actions && ! (git status --porcelain | grep '^.M' | grep dist)",
+    "check:eslint": "eslint . --cache",
+    "check:types": "tsc --noEmit",
+    "check:unused": "knip -n",
     "build:actions": "bun -F '*' build",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "prepare": "bunx simple-git-hooks",
+    "test": "vitest",
+    "test:coverage": "vitest --coverage"
   },
   "devDependencies": {
     "@kevinmarrec/eslint-config": "^1.5.9",
-    "eslint": "^9.39.1"
+    "@kevinmarrec/tsconfig": "^1.5.9",
+    "@vitest/coverage-v8": "4.0.15",
+    "eslint": "^9.39.1",
+    "knip": "^5.71.0",
+    "typescript": "~5.9.3",
+    "vitest": "^4.0.15"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "echo 'Pre-commit checks' && bun run check:artifacts"
   }
 }

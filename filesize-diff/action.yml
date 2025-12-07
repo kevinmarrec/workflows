@@ -1,0 +1,40 @@
+name: File size Diff Analysis
+description: Analyze file size differences between the current branch and main branch, and comment on PRs with changes
+
+inputs:
+  directories:
+    description: Comma-separated list of directories to analyze (e.g., api/dist,app/dist) (relative to workspace root)
+    required: true
+
+  cache-path:
+    description: Path to cache directory
+    required: false
+    default: .github/cache/build-stats
+
+  cache-key:
+    description: Cache key to use for restore/save
+    required: false
+    default: build-stats-main
+
+  show-total:
+    description: Show total row in the table
+    required: false
+    default: 'true'
+
+  comment-on-pr:
+    description: Whether to comment on PRs with file size changes
+    required: false
+    default: 'true'
+
+  github-token:
+    description: GitHub token for API calls (defaults to github.token)
+    required: false
+    default: ${{ github.token }}
+
+outputs:
+  has-changes:
+    description: Whether any file size changes were detected compared to main branch
+
+runs:
+  using: node24
+  main: dist/run.js

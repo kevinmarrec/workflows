@@ -1,0 +1,40 @@
+name: Continuous Integration
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  check-and-test:
+    name: Check & Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Bun
+        uses: kevinmarrec/workflows/setup-bun@v1
+
+      - name: Lint
+        run: bun run lint
+
+      - name: Check unused files, dependencies, and exports
+        run: bun run check:unused
+
+      - name: Type check
+        run: bun run check:types
+
+      - name: Check build:actions doesn't change git
+        run: |
+          bun run build:actions
+          git diff --name-only --exit-code || (echo "build:actions modified git tracked files" && exit 1)
+
+      - name: Unit tests
+        run: bun run test:coverage
+
+      - name: Report coverage
+        uses: davelosert/vitest-coverage-report-action@5b6122e3a819a3be7b27fc961b7faafb3bf00e4d # v2.9.0
+        with:
+          file-coverage-mode: all
+          comment-on: none

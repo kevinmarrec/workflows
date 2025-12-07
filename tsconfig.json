@@ -1,0 +1,4 @@
+{
+  "extends": "@kevinmarrec/tsconfig",
+  "exclude": ["node_modules", "**/dist"]
+}

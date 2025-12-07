@@ -1,0 +1,18 @@
+{
+  "name": "filesize-diff-action",
+  "type": "module",
+  "private": true,
+  "description": "GitHub Action for analyzing file size differences between a branch and the main branch",
+  "main": "dist/run.js",
+  "scripts": {
+    "build": "bun build src/run.ts --outdir dist --target node --minify --sourcemap"
+  },
+  "dependencies": {
+    "@actions/cache": "^4.1.0",
+    "@actions/core": "^1.11.1",
+    "@actions/github": "^6.0.1",
+    "filesize": "^11.0.13",
+    "pathe": "^1.1.2",
+    "tinyglobby": "^0.2.15"
+  }
+}
