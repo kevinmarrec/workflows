@@ -12,7 +12,9 @@ export default defineConfig({
       },
     }],
     reporters: ['verbose'],
+    silent: 'passed-only', // Only show console output from failing tests
     coverage: {
+      provider: 'v8',
       include: ['filesize-diff/src/**/*.ts'],
       reporter: ['text', 'text-summary', 'json', 'json-summary'],
     },
