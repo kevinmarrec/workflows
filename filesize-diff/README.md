@@ -38,13 +38,12 @@ permissions:
 
 ## Inputs
 
-- `directories` (required): Comma-separated list of directories to analyze (relative to workspace root)
-- `package-manager` (optional): Package manager to use (bun, pnpm, yarn, npm). Default: `bun`
+- `directories` (required): Comma-separated list of directories to analyze (e.g., `api/dist,app/dist`) (relative to workspace root)
 - `cache-path` (optional): Path to cache directory. Default: `.github/cache/build-stats`
 - `cache-key` (optional): Cache key to use for restore/save. Default: `build-stats-main`
 - `show-total` (optional): Show total row in the table. Default: `true`
 - `comment-on-pr` (optional): Whether to comment on PRs with file size changes. Default: `true`
-- `github-token` (optional): GitHub token for API calls. Defaults to `${{ github.token }}` which respects the job's permissions
+- `github-token` (optional): GitHub token for API calls. Defaults to `github.token`
 
 **Note:** If `comment-on-pr` is enabled (default), ensure your workflow job has `pull-requests: write` permission. See [Job Permissions](#job-permissions) above.
 
