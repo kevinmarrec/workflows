@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { saveStats } from './cache'
 import {
   analyzeDirectory,
+  ASSET_FOLDERS,
   type FileStat,
   formatDiff,
   formatTotalRow,
@@ -32,15 +33,21 @@ describe('getFilePriority', () => {
 })
 
 describe('normalizeAssetFilename', () => {
-  it('should normalize Vite hashed filenames', () => {
-    expect(normalizeAssetFilename('app-Ckdnwnhq.js')).toBe('app.js') // 8 chars
-    expect(normalizeAssetFilename('asset-abc-defg.js')).toBe('asset.js') // 8 chars with hyphens
-    expect(normalizeAssetFilename('file-abc_defg.js')).toBe('file.js') // 8 chars with underscores
-    expect(normalizeAssetFilename('bundle-AbC-dEfGh.js')).toBe('bundle.js') // 9 chars
-    expect(normalizeAssetFilename('script-12-34_567.js')).toBe('script.js') // 10 chars
+  it.each(ASSET_FOLDERS)('should normalize Vite hashed filenames in %s folder', (folder) => {
+    expect(normalizeAssetFilename(`${folder}/app-Ckdnwnhq.js`)).toBe(`${folder}/app.js`) // 8 chars
+    expect(normalizeAssetFilename(`${folder}/asset-abc-defg.js`)).toBe(`${folder}/asset.js`) // 8 chars with hyphens
+    expect(normalizeAssetFilename(`${folder}/file-abc_defg.js`)).toBe(`${folder}/file.js`) // 8 chars with underscores
+    expect(normalizeAssetFilename(`${folder}/bundle-AbC-dEfGh.js`)).toBe(`${folder}/bundle.js`) // 9 chars
+    expect(normalizeAssetFilename(`${folder}/script-12-34_567.js`)).toBe(`${folder}/script.js`) // 10 chars
   })
 
-  it('should not modify non-Vite-hashed filenames', () => {
+  it('should normalize Vite hashed filenames in nested asset folders', () => {
+    expect(normalizeAssetFilename('assets/nested/app-Ckdnwnhq.js')).toBe('assets/nested/app.js')
+  })
+
+  it('should not normalize files outside asset folders', () => {
+    expect(normalizeAssetFilename('app-Ckdnwnhq.js')).toBe('app-Ckdnwnhq.js') // Not in asset folder
+    expect(normalizeAssetFilename('file-abc12345.js')).toBe('file-abc12345.js') // Matches pattern but not in asset folder
     expect(normalizeAssetFilename('asset.js')).toBe('asset.js')
     expect(normalizeAssetFilename('file-abc123.js')).toBe('file-abc123.js')
     expect(normalizeAssetFilename('file-abc1234.js')).toBe('file-abc1234.js') // 7 chars
@@ -158,14 +165,14 @@ describe('getFileStats', () => {
   it('should get file stats with normalization and sorting', async () => {
     expect(await getFileStats(tempDir)).toEqual([])
 
-    fs.writeFileSync(path.join(tempDir, 'app-Ckdnwnhq.js'), 'test')
     fs.mkdirSync(path.join(tempDir, 'assets'), { recursive: true })
+    fs.writeFileSync(path.join(tempDir, 'assets', 'app-Ckdnwnhq.js'), 'test')
     fs.writeFileSync(path.join(tempDir, 'assets', 'bundle.js'), 'bundle')
     fs.writeFileSync(path.join(tempDir, 'index.html'), 'html')
 
     const result = await getFileStats(tempDir)
-    expect(result[0].file).toBe('assets/bundle.js')
-    expect(result.find(r => r.file === 'app.js')).toBeDefined()
+    expect(result[0].file).toBe('assets/app.js') // Sorted alphabetically after normalization
+    expect(result.find(r => r.file === 'assets/bundle.js')).toBeDefined()
   })
 })
 

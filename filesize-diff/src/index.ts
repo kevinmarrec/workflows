@@ -14,6 +14,8 @@ export interface FileStat {
   size: number
 }
 
+export const ASSET_FOLDERS = ['assets'] as const
+
 const FILE_PRIORITY_SCORE = {
   ASSETS_PREFIX: 2,
   JS_EXTENSION: 1,
@@ -33,6 +35,11 @@ export function getFilePriority(file: string): number {
 }
 
 export function normalizeAssetFilename(file: string): string {
+  // Only normalize Vite build hashed asset filenames for files in asset folders
+  if (!ASSET_FOLDERS.some(folder => file.startsWith(`${folder}/`) || file.includes(`/${folder}/`))) {
+    return file
+  }
+
   // Normalize Vite build hashed asset filenames (e.g., asset-Ckdnwnhq.js -> asset.js)
   // Vite generates url-safe base64 hashes (8-10 chars, a-z, A-Z, 0-9, -, _) in format: filename-[hash].ext
   return file.replace(/-[\w-]{8,10}(\.[a-z]+)$/i, '$1')
