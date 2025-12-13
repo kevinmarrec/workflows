@@ -285,9 +285,7 @@ describe('main function integration', () => {
     }
   })
 
-  it('should handle root-level build directories without section headers', async () => {
-    // Create a directory named "dist" and pass it as a relative path
-    // This tests the branch where sectionName is null (line 342)
+  it('should use directory name directly in details summary', async () => {
     const distDir = path.join(tempDir, 'dist')
     fs.mkdirSync(distDir, { recursive: true })
     fs.writeFileSync(path.join(distDir, 'file1.js'), 'content1')
@@ -299,7 +297,7 @@ describe('main function integration', () => {
     try {
       const addRawSpy = vi.fn()
       vi.spyOn(core, 'getInput').mockImplementation((name: string) => {
-        if (name === 'directories') return 'dist' // Use relative path to trigger null sectionName
+        if (name === 'directories') return 'dist'
         if (name === 'cache-path') return cacheDir
         return ''
       })
@@ -321,12 +319,15 @@ describe('main function integration', () => {
       const { run } = await import('./index')
       await run()
 
-      // Verify that the summary was called and doesn't contain a section header (## Dist)
+      // Verify that the summary was called and contains the new format
       expect(addRawSpy).toHaveBeenCalled()
       const summaryCall = addRawSpy.mock.calls[0][0]
-      // Should not contain section header for root-level dist directory
-      expect(summaryCall).not.toMatch(/^## Dist/m)
-      // Should contain the table content directly
+      // Should contain the main title
+      expect(summaryCall).toContain('# File size Diff')
+      // Should be wrapped in details tags with directory name as summary
+      expect(summaryCall).toContain('<details>')
+      expect(summaryCall).toContain('<summary>dist</summary>')
+      // Should contain the table content
       expect(summaryCall).toContain('file1.js')
     }
     finally {

@@ -3,7 +3,7 @@ import * as fs from 'node:fs'
 import * as core from '@actions/core'
 import * as github from '@actions/github'
 import { filesize } from 'filesize'
-import { basename, dirname, join, normalize } from 'pathe'
+import { join } from 'pathe'
 import { glob } from 'tinyglobby'
 
 import { loadCachedStats, restoreCache, saveCache, saveStats } from './cache'
@@ -85,31 +85,6 @@ export function formatTotalRow(
       : `${filesize(totalDiff)} ✅`
 
   return `| **Total** | **${filesize(totalCached)}** | **${filesize(totalCurrent)}** | ${diffDisplay} |`
-}
-
-export function getSectionName(directory: string): string | null {
-  // Normalize path using pathe for cross-platform compatibility
-  const normalizedDir = normalize(directory)
-  const dirName = basename(normalizedDir).toLowerCase()
-
-  // Check if directory name is a common build output directory
-  const buildDirs = ['dist', 'build', 'out']
-  if (buildDirs.includes(dirName)) {
-    // Get parent directory
-    const parentPath = dirname(normalizedDir)
-
-    // If parent is root (no meaningful parent), return null to skip header
-    if (parentPath === '.' || parentPath === '/' || parentPath === normalizedDir) {
-      return null
-    }
-
-    // Return parent directory name
-    const parentName = basename(parentPath)
-    return parentName.charAt(0).toUpperCase() + parentName.slice(1)
-  }
-
-  // Default: use directory name
-  return dirName.charAt(0).toUpperCase() + dirName.slice(1)
 }
 
 export function generateDiffTable(
@@ -232,7 +207,6 @@ export async function run(): Promise<void> {
       // Use normalized directory path for cache filename to avoid collisions
       const cacheFileName = directory.replace(/\//g, '-').replace(/\\/g, '-')
       const cachePath = join(cachePathBase, `${cacheFileName}.json`)
-      const sectionName = getSectionName(directory)
 
       core.info(`Analyzing ${directory}...`)
 
@@ -245,19 +219,26 @@ export async function run(): Promise<void> {
         overallHasChanges = true
       }
 
-      // Only add section header if sectionName is not null
-      const sectionHeader = sectionName ? `## ${sectionName}\n\n` : ''
-      summaryParts.push(`${sectionHeader}${markdown}`)
+      // Wrap each section in a details dropdown
+      const sectionMarkdown = `<details>
+<summary>${directory}</summary>
+<br>
+
+${markdown}
+
+</details>`
+      summaryParts.push(sectionMarkdown)
     }
 
     const fullSummary = summaryParts.join('\n\n')
+    const fullSummaryWithTitle = `# File size Diff\n\n${fullSummary}`
 
     // Write to step summary
-    core.summary.addRaw(fullSummary)
+    core.summary.addRaw(fullSummaryWithTitle)
     await core.summary.write()
 
     core.startGroup('Full summary')
-    core.info(fullSummary)
+    core.info(fullSummaryWithTitle)
     core.endGroup()
 
     // Set output
@@ -267,7 +248,6 @@ export async function run(): Promise<void> {
 
     // Comment on PR if there are changes and comment-on-pr is enabled
     if (overallHasChanges && github.context.eventName === 'pull_request' && prComment) {
-      const fullSummaryWithTitle = `# File size Diff\n\n${fullSummary}`
       await commentOnPR(fullSummaryWithTitle)
     }
 

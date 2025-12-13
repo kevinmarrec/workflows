@@ -14,7 +14,6 @@ import {
   generateDiffTable,
   getFilePriority,
   getFileStats,
-  getSectionName,
   normalizeAssetFilename,
   sortFiles,
 } from './index'
@@ -28,39 +27,6 @@ describe('getFilePriority', () => {
     expect(getFilePriority('assets/image.png')).toBe(2)
     expect(getFilePriority('script.js')).toBe(1)
     expect(getFilePriority('assets/bundle.js')).toBe(3)
-  })
-})
-
-describe('getSectionName', () => {
-  it('should return parent directory name for build directories', () => {
-    expect(getSectionName('template/app/dist')).toBe('App')
-    expect(getSectionName('template/api/dist')).toBe('Api')
-    // Verify other build directory types work
-    expect(getSectionName('template/app/build')).toBe('App')
-    expect(getSectionName('template/app/out')).toBe('App')
-  })
-
-  it('should return null for root-level build directories', () => {
-    expect(getSectionName('dist')).toBeNull()
-    expect(getSectionName('./dist')).toBeNull()
-    expect(getSectionName('/dist')).toBeNull()
-    // Verify other build directory types work
-    expect(getSectionName('build')).toBeNull()
-    expect(getSectionName('out')).toBeNull()
-  })
-
-  it('should return directory name for non-build directories', () => {
-    expect(getSectionName('template/app')).toBe('App')
-    expect(getSectionName('some-other-dir')).toBe('Some-other-dir')
-  })
-
-  it('should handle Windows-style paths', () => {
-    expect(getSectionName('template\\app\\dist')).toBe('App')
-  })
-
-  it('should handle paths with trailing slashes', () => {
-    expect(getSectionName('template/app/dist/')).toBe('App')
-    expect(getSectionName('dist/')).toBeNull()
   })
 })
 
