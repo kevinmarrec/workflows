@@ -1,11 +1,13 @@
 import * as fs from 'node:fs'
 
-import * as cache from '@actions/cache'
 import * as core from '@actions/core'
 import * as github from '@actions/github'
 import { filesize } from 'filesize'
 import { basename, dirname, join, normalize } from 'pathe'
 import { glob } from 'tinyglobby'
+
+import { loadCachedStats, restoreCache, saveCache, saveStats } from './cache'
+import { commentOnPR } from './comment'
 
 export interface FileStat {
   file: string
@@ -51,25 +53,6 @@ export async function getFileStats(directory: string): Promise<FileStat[]> {
   })
 
   return fileStats
-}
-
-export function loadCachedStats(cachePath: string): FileStat[] | null {
-  if (!fs.existsSync(cachePath)) {
-    return null
-  }
-  try {
-    const content = fs.readFileSync(cachePath, 'utf-8')
-    return JSON.parse(content)
-  }
-  catch {
-    return null
-  }
-}
-
-export function saveStats(stats: FileStat[], cachePath: string): void {
-  const dir = dirname(cachePath)
-  fs.mkdirSync(dir, { recursive: true })
-  fs.writeFileSync(cachePath, JSON.stringify(stats, null, 2))
 }
 
 export function formatDiff(currentSize: number, cachedSize: number): string {
@@ -226,63 +209,6 @@ export async function analyzeDirectory(
   return { markdown, hasChanges }
 }
 
-export async function commentOnPR(body: string): Promise<void> {
-  const token = core.getInput('github-token', { required: true })
-  const octokit = github.getOctokit(token)
-  const context = github.context
-
-  if (context.eventName !== 'pull_request') {
-    return
-  }
-
-  const prNumber = context.issue.number
-  if (!prNumber) {
-    core.warning('Could not determine PR number')
-    return
-  }
-
-  // Add a hint identifier to the comment body for detection
-  const COMMENT_HINT = '<!-- filesize-diff-action -->'
-  const commentBody = `${COMMENT_HINT}\n\n${body}`
-
-  try {
-    // Find existing comment by looking for the hint
-    const { data: comments } = await octokit.rest.issues.listComments({
-      owner: context.repo.owner,
-      repo: context.repo.repo,
-      issue_number: prNumber,
-    })
-
-    const botComment = comments.find(
-      comment => comment.user?.type === 'Bot' && comment.body?.includes(COMMENT_HINT),
-    )
-
-    if (botComment) {
-      // Update existing comment
-      await octokit.rest.issues.updateComment({
-        owner: context.repo.owner,
-        repo: context.repo.repo,
-        comment_id: botComment.id,
-        body: commentBody,
-      })
-      core.info('Updated existing PR comment')
-    }
-    else {
-      // Create new comment
-      await octokit.rest.issues.createComment({
-        owner: context.repo.owner,
-        repo: context.repo.repo,
-        issue_number: prNumber,
-        body: commentBody,
-      })
-      core.info('Created new PR comment')
-    }
-  }
-  catch (error) {
-    core.warning(`Failed to comment on PR: ${error}`)
-  }
-}
-
 export async function run(): Promise<void> {
   try {
     const directoriesInput = core.getInput('directories', { required: true })
@@ -297,26 +223,7 @@ export async function run(): Promise<void> {
       return core.setFailed('At least one directory must be provided')
     }
 
-    const isMainBranch = github.context.ref === 'refs/heads/main'
-
-    // Restore cache only on non-main branches (for comparison)
-    // On main branch, we skip restore since we're creating the baseline
-    let cacheHit: string | undefined
-    if (!isMainBranch) {
-      // Use restore key pattern to find the latest main branch cache
-      const restoreKeyPattern = `${cacheKey}-`
-      core.info(`Restoring cache with restore key pattern: ${restoreKeyPattern}`)
-      cacheHit = await cache.restoreCache([cachePathBase], cacheKey, [restoreKeyPattern])
-      if (cacheHit) {
-        core.info(`Cache restored from key: ${cacheHit}`)
-      }
-      else {
-        core.info('No cache found')
-      }
-    }
-    else {
-      core.info('Skipping cache restore on main branch (no comparison needed)')
-    }
+    await restoreCache(cachePathBase, cacheKey)
 
     const summaryParts: string[] = []
     let overallHasChanges = false
@@ -365,21 +272,7 @@ export async function run(): Promise<void> {
     }
 
     // Save cache only on main branch (to create baseline for PR comparisons)
-    // Use unique key with commit SHA to ensure cache updates on each commit
-    if (isMainBranch) {
-      const actualCacheKey = `${cacheKey}-${github.context.sha}`
-      core.info(`Attempting to save baseline cache with key: ${actualCacheKey}`)
-      try {
-        await cache.saveCache([cachePathBase], actualCacheKey)
-        core.info('Baseline cache saved successfully (Cache reserved and uploaded)')
-      }
-      catch (error) {
-        core.warning(`Failed to save baseline cache: ${error instanceof Error ? error.message : String(error)}`)
-      }
-    }
-    else {
-      core.info('Skipping baseline cache save (not on main branch)')
-    }
+    await saveCache(cachePathBase, cacheKey)
   }
   catch (error) {
     core.setFailed(error instanceof Error ? error.message : String(error))
