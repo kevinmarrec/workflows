@@ -196,7 +196,7 @@ export async function run(): Promise<void> {
 
     for (const directory of directories) {
       // Use normalized directory path for cache filename to avoid collisions
-      const cacheFileName = directory.replace(/\//g, '-').replace(/\\/g, '-')
+      const cacheFileName = directory.replace(/[\\/]/g, '-')
       const cachePath = join(cachePathBase, `${cacheFileName}.json`)
 
       core.info(`Analyzing ${directory}...`)
