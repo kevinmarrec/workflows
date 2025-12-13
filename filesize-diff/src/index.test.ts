@@ -78,9 +78,10 @@ describe('formatTotalRow', () => {
 describe('generateDiffTable', () => {
   it('should generate table without cache', () => {
     const current: FileStat[] = [{ file: 'index.html', size: 100 }]
-    const result = generateDiffTable(current, null, false)
+    const result = generateDiffTable(current, null)
     expect(result).toContain('File')
     expect(result).toContain('index.html')
+    expect(result).toContain('**Total**')
   })
 
   it('should generate table with cache and sort by priority', () => {
@@ -92,7 +93,7 @@ describe('generateDiffTable', () => {
       { file: 'index.html', size: 100 },
       { file: 'assets/bundle.js', size: 200 },
     ]
-    const result = generateDiffTable(current, cached, true)
+    const result = generateDiffTable(current, cached)
     expect(result).toContain('main')
     expect(result).toContain('**Total**')
     expect(result.indexOf('assets/bundle.js')).toBeLessThan(result.indexOf('index.html'))
@@ -141,21 +142,16 @@ describe('analyzeDirectory', () => {
   it('should throw error if directory does not exist', async () => {
     vi.spyOn(core, 'setFailed').mockImplementation(() => {})
     await expect(
-      analyzeDirectory(path.join(tempDir, 'nonexistent'), {
-        cachePath: path.join(cacheDir, 'cache.json'),
-        showTotal: false,
-      }),
+      analyzeDirectory(path.join(tempDir, 'nonexistent'), path.join(cacheDir, 'cache.json')),
     ).rejects.toThrow()
   })
 
   it('should detect changes when no cache exists', async () => {
     fs.writeFileSync(path.join(tempDir, 'test.js'), 'test')
-    const result = await analyzeDirectory(tempDir, {
-      cachePath: path.join(cacheDir, 'cache.json'),
-      showTotal: false,
-    })
+    const result = await analyzeDirectory(tempDir, path.join(cacheDir, 'cache.json'))
     expect(result.hasChanges).toBe(true)
     expect(result.markdown).toContain('test.js')
+    expect(result.markdown).toContain('**Total**')
   })
 
   it('should detect no changes when sizes match', async () => {
@@ -164,11 +160,9 @@ describe('analyzeDirectory', () => {
     const fileSize = fs.statSync(path.join(tempDir, 'test.js')).size
     saveStats([{ file: 'test.js', size: fileSize }], cachePath)
 
-    const result = await analyzeDirectory(tempDir, {
-      cachePath,
-      showTotal: false,
-    })
+    const result = await analyzeDirectory(tempDir, cachePath)
     expect(result.hasChanges).toBe(false)
+    expect(result.markdown).toContain('**Total**')
   })
 
   it('should detect changes when file exists only in cache or only in current', async () => {
@@ -182,31 +176,24 @@ describe('analyzeDirectory', () => {
       cachePath,
     )
 
-    const result = await analyzeDirectory(tempDir, {
-      cachePath,
-      showTotal: false,
-    })
+    const result = await analyzeDirectory(tempDir, cachePath)
     expect(result.hasChanges).toBe(true)
     expect(result.markdown).toContain('deleted.js')
+    expect(result.markdown).toContain('**Total**')
 
     // Test file exists only in current (not in cache)
     fs.writeFileSync(path.join(tempDir, 'new.js'), 'new')
-    const result2 = await analyzeDirectory(tempDir, {
-      cachePath,
-      showTotal: false,
-    })
+    const result2 = await analyzeDirectory(tempDir, cachePath)
     expect(result2.hasChanges).toBe(true)
     expect(result2.markdown).toContain('new.js')
+    expect(result2.markdown).toContain('**Total**')
   })
 
   it('should handle invalid cache file', async () => {
     fs.writeFileSync(path.join(tempDir, 'test.js'), 'test')
     fs.writeFileSync(path.join(cacheDir, 'cache.json'), 'invalid json')
 
-    const result = await analyzeDirectory(tempDir, {
-      cachePath: path.join(cacheDir, 'cache.json'),
-      showTotal: true,
-    })
+    const result = await analyzeDirectory(tempDir, path.join(cacheDir, 'cache.json'))
     expect(result.hasChanges).toBe(true)
     expect(result.markdown).toContain('**Total**')
   })

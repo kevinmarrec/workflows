@@ -209,7 +209,7 @@ describe('main function integration', () => {
     expect(core.setFailed).toHaveBeenCalledWith('String error')
   })
 
-  it('should use default values for show-total and comment-on-pr', async () => {
+  it('should use default values for comment-on-pr', async () => {
     const dir1 = path.join(tempDir, 'dir1')
     fs.mkdirSync(dir1, { recursive: true })
     fs.writeFileSync(path.join(dir1, 'file1.js'), 'content1')

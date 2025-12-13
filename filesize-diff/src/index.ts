@@ -90,7 +90,6 @@ export function formatTotalRow(
 export function generateDiffTable(
   current: FileStat[],
   cached: FileStat[] | null,
-  showTotal: boolean,
 ): string {
   const hasCache = cached !== null
   const currentMap = new Map(current.map(s => [s.file, s.size]))
@@ -124,22 +123,15 @@ export function generateDiffTable(
 
   const table = [header, ...rows]
 
-  if (showTotal) {
-    table.push(formatTotalRow(totalCurrent, totalCached, hasCache))
-  }
+  table.push(formatTotalRow(totalCurrent, totalCached, hasCache))
 
   return table.join('\n')
 }
 
 export async function analyzeDirectory(
   directory: string,
-  options: {
-    cachePath: string
-    showTotal: boolean
-  },
+  cachePath: string,
 ): Promise<{ markdown: string, hasChanges: boolean }> {
-  const { cachePath, showTotal } = options
-
   // Check if directory exists
   if (!fs.existsSync(directory)) {
     core.setFailed(`Directory not found at ${directory}. Please ensure the directory exists before running this action.`)
@@ -180,7 +172,7 @@ export async function analyzeDirectory(
   // Save current stats
   saveStats(currentStats, cachePath)
 
-  const markdown = generateDiffTable(currentStats, cachedStats, showTotal)
+  const markdown = generateDiffTable(currentStats, cachedStats)
   return { markdown, hasChanges }
 }
 
@@ -189,7 +181,6 @@ export async function run(): Promise<void> {
     const directoriesInput = core.getInput('directories', { required: true })
     const cachePathBase = core.getInput('cache-path') || '.github/cache/build-stats'
     const cacheKey = core.getInput('cache-key') || 'build-stats-main'
-    const showTotal = core.getBooleanInput('show-total', { required: false }) ?? true
     const prComment = core.getBooleanInput('comment-on-pr', { required: false }) ?? true
 
     const directories = directoriesInput.split(',').map(d => d.trim()).filter(Boolean)
@@ -210,10 +201,7 @@ export async function run(): Promise<void> {
 
       core.info(`Analyzing ${directory}...`)
 
-      const { markdown, hasChanges } = await analyzeDirectory(directory, {
-        cachePath,
-        showTotal,
-      })
+      const { markdown, hasChanges } = await analyzeDirectory(directory, cachePath)
 
       if (hasChanges) {
         overallHasChanges = true
