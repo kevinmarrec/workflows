@@ -97,7 +97,9 @@ describe('generateDiffTable', () => {
     ]
     const result = generateDiffTable(current, cached)
     const joined = result.join('\n')
-    expect(joined).toContain('main')
+    expect(joined).toContain('Base (Before Merge)')
+    expect(joined).toContain('Head (After Merge)')
+    expect(joined).toContain('Delta')
     expect(joined).toContain('**Total**')
     expect(joined.indexOf('assets/bundle.js')).toBeLessThan(joined.indexOf('index.html'))
   })
@@ -120,9 +122,9 @@ describe('generateTotalTable', () => {
     const totalRows = ['| **dir1** | **50 B** | **100 B** | +50 B 🔺 |']
     const result = generateTotalTable(totalRows)
     expect(result).toContain('Directory')
-    expect(result).toContain('main')
-    expect(result).toContain('Current')
-    expect(result).toContain('Diff')
+    expect(result).toContain('Base (Before Merge)')
+    expect(result).toContain('Head (After Merge)')
+    expect(result).toContain('Delta')
     expect(result).toContain('dir1')
   })
 

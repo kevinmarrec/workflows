@@ -19,6 +19,12 @@ const FILE_PRIORITY_SCORE = {
   JS_EXTENSION: 1,
 } as const
 
+const COLUMN_HEADERS = {
+  BASE: 'Base (Before Merge)',
+  HEAD: 'Head (After Merge)',
+  DELTA: 'Delta',
+} as const
+
 export function getFilePriority(file: string): number {
   let score = 0
   if (file.startsWith('assets/')) score += FILE_PRIORITY_SCORE.ASSETS_PREFIX
@@ -99,7 +105,7 @@ export function generateTotalTable(
   const hasCache = totalRows[0].split('|').length === 6 // 4 columns + 2 empty at start/end
 
   const header = hasCache
-    ? `| Directory | \`main\` | Current | Diff |\n| :--- | ---: | ---: | ---: |`
+    ? `| Directory | ${COLUMN_HEADERS.BASE} | ${COLUMN_HEADERS.HEAD} | ${COLUMN_HEADERS.DELTA} |\n| :--- | ---: | ---: | ---: |`
     : '| Directory | Size |\n| :--- | ---: |'
 
   return [header, ...totalRows].join('\n')
@@ -136,7 +142,7 @@ export function generateDiffTable(
   }
 
   const header = hasCache
-    ? `| File | \`main\` | Current | Diff |\n| :--- | ---: | ---: | ---: |`
+    ? `| File | ${COLUMN_HEADERS.BASE} | ${COLUMN_HEADERS.HEAD} | ${COLUMN_HEADERS.DELTA} |\n| :--- | ---: | ---: | ---: |`
     : '| File | Size |\n| :--- | ---: |'
 
   const table = [header, ...rows]
