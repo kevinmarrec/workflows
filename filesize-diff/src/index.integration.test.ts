@@ -323,7 +323,7 @@ describe('main function integration', () => {
       expect(addRawSpy).toHaveBeenCalled()
       const summaryCall = addRawSpy.mock.calls[0][0]
       // Should contain the main title
-      expect(summaryCall).toContain('# File size Diff')
+      expect(summaryCall).toContain('# 📋 File size Summary')
       // Should be wrapped in details tags with directory name as summary
       expect(summaryCall).toContain('<details>')
       expect(summaryCall).toContain('<summary>dist</summary>')

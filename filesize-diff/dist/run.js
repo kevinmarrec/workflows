@@ -140,11 +140,11 @@ ${A}`;try{let{data:Y}=await B.rest.issues.listComments({owner:I.repo.owner,repo:
 
 ${X}
 
-</details>`;F.push(L)}let G=`# File size Diff
+</details>`;F.push(L)}let G=`# \uD83D\uDCCB File size Summary
 
 ${F.join(`
 
 `)}`;if(KQ.summary.addRaw(G),await KQ.summary.write(),KQ.startGroup("Full summary"),KQ.info(G),KQ.endGroup(),KQ.setOutput("has-changes",Y.toString()),KQ.info(`Detected changes ? ${Y?"yes":"no"}`),Y&&Ti.context.eventName==="pull_request"&&E)await Hi(G);await zi(Q,B)}catch(A){KQ.setFailed(A instanceof Error?A.message:String(A))}}Oi();
 
-//# debugId=145DD67F8C9BA62B64756E2164756E21
+//# debugId=92DEB9F4EA705CC264756E2164756E21
 //# sourceMappingURL=run.js.map

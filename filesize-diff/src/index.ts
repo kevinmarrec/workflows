@@ -231,7 +231,7 @@ ${markdown}
     }
 
     const fullSummary = summaryParts.join('\n\n')
-    const fullSummaryWithTitle = `# File size Diff\n\n${fullSummary}`
+    const fullSummaryWithTitle = `# 📋 File size Summary\n\n${fullSummary}`
 
     // Write to step summary
     core.summary.addRaw(fullSummaryWithTitle)
