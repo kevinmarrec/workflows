@@ -69,12 +69,13 @@ export function formatDiff(currentSize: number, cachedSize: number): string {
 }
 
 export function formatTotalRow(
+  label: string,
   totalCurrent: number,
   totalCached: number,
   hasCache: boolean,
 ): string {
   if (!hasCache) {
-    return `| **Total** | **${filesize(totalCurrent)}** |`
+    return `| **${label}** | **${filesize(totalCurrent)}** |`
   }
 
   const totalDiff = totalCurrent - totalCached
@@ -84,13 +85,30 @@ export function formatTotalRow(
       ? `+${filesize(totalDiff)} 🔺`
       : `${filesize(totalDiff)} ✅`
 
-  return `| **Total** | **${filesize(totalCached)}** | **${filesize(totalCurrent)}** | ${diffDisplay} |`
+  return `| **${label}** | **${filesize(totalCached)}** | **${filesize(totalCurrent)}** | ${diffDisplay} |`
+}
+
+export function generateTotalTable(
+  totalRows: string[],
+): string {
+  if (totalRows.length === 0) {
+    return ''
+  }
+
+  // Determine table format from first row (check if it has 4 columns with cache or 2 without)
+  const hasCache = totalRows[0].split('|').length === 6 // 4 columns + 2 empty at start/end
+
+  const header = hasCache
+    ? `| Directory | \`main\` | Current | Diff |\n| :--- | ---: | ---: | ---: |`
+    : '| Directory | Size |\n| :--- | ---: |'
+
+  return [header, ...totalRows].join('\n')
 }
 
 export function generateDiffTable(
   current: FileStat[],
   cached: FileStat[] | null,
-): string {
+): string[] {
   const hasCache = cached !== null
   const currentMap = new Map(current.map(s => [s.file, s.size]))
   const cachedMap = hasCache ? new Map(cached.map(s => [s.file, s.size])) : new Map()
@@ -122,16 +140,15 @@ export function generateDiffTable(
     : '| File | Size |\n| :--- | ---: |'
 
   const table = [header, ...rows]
+  table.push(formatTotalRow('Total', totalCurrent, totalCached, hasCache))
 
-  table.push(formatTotalRow(totalCurrent, totalCached, hasCache))
-
-  return table.join('\n')
+  return table
 }
 
 export async function analyzeDirectory(
   directory: string,
   cachePath: string,
-): Promise<{ markdown: string, hasChanges: boolean }> {
+): Promise<{ tableRows: string[], hasChanges: boolean }> {
   // Check if directory exists
   if (!fs.existsSync(directory)) {
     core.setFailed(`Directory not found at ${directory}. Please ensure the directory exists before running this action.`)
@@ -172,8 +189,8 @@ export async function analyzeDirectory(
   // Save current stats
   saveStats(currentStats, cachePath)
 
-  const markdown = generateDiffTable(currentStats, cachedStats)
-  return { markdown, hasChanges }
+  const tableRows = generateDiffTable(currentStats, cachedStats)
+  return { tableRows, hasChanges }
 }
 
 export async function run(): Promise<void> {
@@ -191,7 +208,8 @@ export async function run(): Promise<void> {
 
     await restoreCache(cachePathBase, cacheKey)
 
-    const summaryParts: string[] = []
+    const detailsSections: string[] = []
+    const totalRows: string[] = []
     let overallHasChanges = false
 
     for (const directory of directories) {
@@ -201,32 +219,38 @@ export async function run(): Promise<void> {
 
       core.info(`Analyzing ${directory}...`)
 
-      const { markdown, hasChanges } = await analyzeDirectory(directory, cachePath)
+      const { tableRows, hasChanges } = await analyzeDirectory(directory, cachePath)
 
       if (hasChanges) {
         overallHasChanges = true
       }
+
+      // Extract last row (total row) and replace "Total" with directory name
+      const lastRow = tableRows[tableRows.length - 1]
+      const totalRow = lastRow.replace('**Total**', directory)
+      totalRows.push(totalRow)
 
       // Wrap each section in a details dropdown
       const sectionMarkdown = `<details>
 <summary>${directory}</summary>
 <br>
 
-${markdown}
+${tableRows.join('\n')}
 
 </details>`
-      summaryParts.push(sectionMarkdown)
+      detailsSections.push(sectionMarkdown)
     }
 
-    const fullSummary = summaryParts.join('\n\n')
-    const fullSummaryWithTitle = `# 📋 File size Summary\n\n${fullSummary}`
+    // Generate summary table with totals
+    const totalTable = generateTotalTable(totalRows)
+    const fullSummary = `# 📋 File size Summary\n\n${totalTable}\n\n${detailsSections.join('\n\n')}`
 
     // Write to step summary
-    core.summary.addRaw(fullSummaryWithTitle)
+    core.summary.addRaw(fullSummary)
     await core.summary.write()
 
     core.startGroup('Full summary')
-    core.info(fullSummaryWithTitle)
+    core.info(fullSummary)
     core.endGroup()
 
     // Set output
@@ -236,7 +260,7 @@ ${markdown}
 
     // Comment on PR if there are changes and comment-on-pr is enabled
     if (overallHasChanges && github.context.eventName === 'pull_request' && prComment) {
-      await commentOnPR(fullSummaryWithTitle)
+      await commentOnPR(fullSummary)
     }
 
     // Save cache only on main branch (to create baseline for PR comparisons)

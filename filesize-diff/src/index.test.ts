@@ -12,6 +12,7 @@ import {
   formatDiff,
   formatTotalRow,
   generateDiffTable,
+  generateTotalTable,
   getFilePriority,
   getFileStats,
   normalizeAssetFilename,
@@ -68,10 +69,10 @@ describe('formatDiff', () => {
 
 describe('formatTotalRow', () => {
   it('should format all total row variants', () => {
-    expect(formatTotalRow(1000, 0, false)).toContain('Total')
-    expect(formatTotalRow(1000, 1000, true)).toContain('➖')
-    expect(formatTotalRow(2000, 1000, true)).toContain('🔺')
-    expect(formatTotalRow(500, 1000, true)).toContain('✅')
+    expect(formatTotalRow('Total', 1000, 0, false)).toContain('Total')
+    expect(formatTotalRow('Total', 1000, 1000, true)).toContain('➖')
+    expect(formatTotalRow('Total', 2000, 1000, true)).toContain('🔺')
+    expect(formatTotalRow('Total', 500, 1000, true)).toContain('✅')
   })
 })
 
@@ -79,9 +80,10 @@ describe('generateDiffTable', () => {
   it('should generate table without cache', () => {
     const current: FileStat[] = [{ file: 'index.html', size: 100 }]
     const result = generateDiffTable(current, null)
-    expect(result).toContain('File')
-    expect(result).toContain('index.html')
-    expect(result).toContain('**Total**')
+    const joined = result.join('\n')
+    expect(joined).toContain('File')
+    expect(joined).toContain('index.html')
+    expect(joined).toContain('**Total**')
   })
 
   it('should generate table with cache and sort by priority', () => {
@@ -94,9 +96,44 @@ describe('generateDiffTable', () => {
       { file: 'assets/bundle.js', size: 200 },
     ]
     const result = generateDiffTable(current, cached)
+    const joined = result.join('\n')
+    expect(joined).toContain('main')
+    expect(joined).toContain('**Total**')
+    expect(joined.indexOf('assets/bundle.js')).toBeLessThan(joined.indexOf('index.html'))
+  })
+})
+
+describe('generateTotalTable', () => {
+  it('should return empty string for empty array', () => {
+    expect(generateTotalTable([])).toBe('')
+  })
+
+  it('should generate table without cache', () => {
+    const totalRows = ['| **dir1** | **100 B** |']
+    const result = generateTotalTable(totalRows)
+    expect(result).toContain('Directory')
+    expect(result).toContain('Size')
+    expect(result).toContain('dir1')
+  })
+
+  it('should generate table with cache', () => {
+    const totalRows = ['| **dir1** | **50 B** | **100 B** | +50 B 🔺 |']
+    const result = generateTotalTable(totalRows)
+    expect(result).toContain('Directory')
     expect(result).toContain('main')
-    expect(result).toContain('**Total**')
-    expect(result.indexOf('assets/bundle.js')).toBeLessThan(result.indexOf('index.html'))
+    expect(result).toContain('Current')
+    expect(result).toContain('Diff')
+    expect(result).toContain('dir1')
+  })
+
+  it('should handle multiple rows', () => {
+    const totalRows = [
+      '| **dir1** | **100 B** |',
+      '| **dir2** | **200 B** |',
+    ]
+    const result = generateTotalTable(totalRows)
+    expect(result).toContain('dir1')
+    expect(result).toContain('dir2')
   })
 })
 
@@ -150,8 +187,9 @@ describe('analyzeDirectory', () => {
     fs.writeFileSync(path.join(tempDir, 'test.js'), 'test')
     const result = await analyzeDirectory(tempDir, path.join(cacheDir, 'cache.json'))
     expect(result.hasChanges).toBe(true)
-    expect(result.markdown).toContain('test.js')
-    expect(result.markdown).toContain('**Total**')
+    const markdown = result.tableRows.join('\n')
+    expect(markdown).toContain('test.js')
+    expect(markdown).toContain('**Total**')
   })
 
   it('should detect no changes when sizes match', async () => {
@@ -162,7 +200,8 @@ describe('analyzeDirectory', () => {
 
     const result = await analyzeDirectory(tempDir, cachePath)
     expect(result.hasChanges).toBe(false)
-    expect(result.markdown).toContain('**Total**')
+    const markdown = result.tableRows.join('\n')
+    expect(markdown).toContain('**Total**')
   })
 
   it('should detect changes when file exists only in cache or only in current', async () => {
@@ -178,15 +217,17 @@ describe('analyzeDirectory', () => {
 
     const result = await analyzeDirectory(tempDir, cachePath)
     expect(result.hasChanges).toBe(true)
-    expect(result.markdown).toContain('deleted.js')
-    expect(result.markdown).toContain('**Total**')
+    const markdown = result.tableRows.join('\n')
+    expect(markdown).toContain('deleted.js')
+    expect(markdown).toContain('**Total**')
 
     // Test file exists only in current (not in cache)
     fs.writeFileSync(path.join(tempDir, 'new.js'), 'new')
     const result2 = await analyzeDirectory(tempDir, cachePath)
     expect(result2.hasChanges).toBe(true)
-    expect(result2.markdown).toContain('new.js')
-    expect(result2.markdown).toContain('**Total**')
+    const markdown2 = result2.tableRows.join('\n')
+    expect(markdown2).toContain('new.js')
+    expect(markdown2).toContain('**Total**')
   })
 
   it('should handle invalid cache file', async () => {
@@ -195,6 +236,7 @@ describe('analyzeDirectory', () => {
 
     const result = await analyzeDirectory(tempDir, path.join(cacheDir, 'cache.json'))
     expect(result.hasChanges).toBe(true)
-    expect(result.markdown).toContain('**Total**')
+    const markdown = result.tableRows.join('\n')
+    expect(markdown).toContain('**Total**')
   })
 })
