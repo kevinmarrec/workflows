@@ -34,8 +34,8 @@ export function getFilePriority(file: string): number {
 
 export function normalizeAssetFilename(file: string): string {
   // Normalize Vite build hashed asset filenames (e.g., asset-Ckdnwnhq.js -> asset.js)
-  // Vite generates alphanumeric hashes (exactly 8 chars, a-z, A-Z, 0-9) in format: filename-[hash].ext
-  return file.replace(/-[a-z0-9]{8}(\.[a-z]+)$/i, '$1')
+  // Vite generates url-safe base64 hashes (8-10 chars, a-z, A-Z, 0-9, -, _) in format: filename-[hash].ext
+  return file.replace(/-[\w-]{8,10}(\.[a-z]+)$/i, '$1')
 }
 
 export function sortFiles(files: string[]): string[] {
