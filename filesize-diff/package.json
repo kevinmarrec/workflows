@@ -8,8 +8,8 @@
     "build": "bun build src/run.ts --outdir dist --target node --minify --sourcemap"
   },
   "dependencies": {
-    "@actions/cache": "^5.0.1",
-    "@actions/core": "^2.0.1",
+    "@actions/cache": "^5.0.2",
+    "@actions/core": "^2.0.2",
     "@actions/github": "^7.0.0",
     "filesize": "^11.0.13",
     "pathe": "^2.0.3",
