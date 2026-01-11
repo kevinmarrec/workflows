@@ -23,7 +23,7 @@
     "@kevinmarrec/tsconfig": "^1.7.0",
     "@vitest/coverage-v8": "4.0.16",
     "eslint": "^9.39.2",
-    "knip": "^5.79.0",
+    "knip": "^5.80.2",
     "typescript": "~5.9.3",
     "vitest": "^4.0.16"
   },
