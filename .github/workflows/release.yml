@@ -30,7 +30,7 @@ jobs:
 
     steps:
       - name: Setup Bun
-        uses: kevinmarrec/workflows/setup-bun@be6f1256268411fe9c85fb9a59cdda6a6e79b7cd # main
+        uses: kevinmarrec/workflows/setup-bun@d135a75178a689bd00c92500e26fc30fc29f3373 # main
         with:
           fetch-all: true
 
