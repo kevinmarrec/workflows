@@ -29,7 +29,8 @@ runs:
     - name: Setup Node.js
       uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
       with:
-        node-version-file: .node-version
+        node-version: ${{ hashFiles('.node-version') == '' && 'lts/*' || '' }}
+        node-version-file: ${{ hashFiles('.node-version') == '' && '' || '.node-version' }}
         registry-url: 'https://registry.npmjs.org'
 
     - name: Install dependencies
