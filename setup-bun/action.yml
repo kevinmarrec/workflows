@@ -10,10 +10,6 @@ inputs:
     description: Whether to fetch all history for all branches and tags.
     default: 'false'
 
-  node-version:
-    description: 'Version Spec of the version to use. Examples: 12.x, 10.15.1, >=10.15.0.'
-    default: 'lts/*'
-
   auto-install:
     description: Whether to automatically install dependencies.
     default: 'true'
@@ -29,14 +25,11 @@ runs:
 
     - name: Setup Bun
       uses: oven-sh/setup-bun@3d267786b128fe76c2f16a390aa2448b815359f3 # v2.1.2
-      with:
-        bun-version-file: package.json
 
     - name: Setup Node.js
       uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
       with:
-        node-version: ${{ inputs.node-version }}
-        package-manager-cache: false
+        node-version-file: .node-version
         registry-url: 'https://registry.npmjs.org'
 
     - name: Install dependencies
