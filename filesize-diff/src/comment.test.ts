@@ -4,29 +4,39 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { commentOnPR } from './comment'
 
+vi.mock('@actions/core')
+vi.mock('@actions/github', () => ({
+  context: {
+    eventName: '',
+    issue: { number: 0 },
+    repo: { owner: '', repo: '' },
+  },
+  getOctokit: vi.fn(),
+}))
+
 describe('commentOnPR', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
 
   it('should return early for non-PR events or missing PR number', async () => {
-    vi.spyOn(core, 'getInput').mockReturnValue('token')
-    vi.spyOn(github, 'getOctokit').mockReturnValue({ rest: { issues: {} } } as any)
+    vi.mocked(core.getInput).mockReturnValue('token')
+    vi.mocked(github.getOctokit).mockReturnValue({ rest: { issues: {} } } as any)
 
-    vi.spyOn(github, 'context', 'get').mockReturnValue({
+    Object.assign(github.context, {
       eventName: 'push',
       issue: { number: 123 },
       repo: { owner: 'owner', repo: 'repo' },
-    } as any)
+    })
     await commentOnPR('body')
     expect(github.getOctokit).toHaveBeenCalled()
 
-    vi.spyOn(core, 'warning').mockImplementation(() => {})
-    vi.spyOn(github, 'context', 'get').mockReturnValue({
+    vi.mocked(core.warning).mockImplementation(() => {})
+    Object.assign(github.context, {
       eventName: 'pull_request',
       issue: { number: undefined },
       repo: { owner: 'owner', repo: 'repo' },
-    } as any)
+    })
     await commentOnPR('body')
     expect(core.warning).toHaveBeenCalled()
   })
@@ -42,14 +52,14 @@ describe('commentOnPR', () => {
       },
     }
 
-    vi.spyOn(core, 'getInput').mockReturnValue('token')
-    vi.spyOn(core, 'info').mockImplementation(() => {})
-    vi.spyOn(github, 'getOctokit').mockReturnValue(mockOctokit as any)
-    vi.spyOn(github, 'context', 'get').mockReturnValue({
+    vi.mocked(core.getInput).mockReturnValue('token')
+    vi.mocked(core.info).mockImplementation(() => {})
+    vi.mocked(github.getOctokit).mockReturnValue(mockOctokit as any)
+    Object.assign(github.context, {
       eventName: 'pull_request',
       issue: { number: 123 },
       repo: { owner: 'owner', repo: 'repo' },
-    } as any)
+    })
 
     await commentOnPR('body')
     expect(mockOctokit.rest.issues.createComment).toHaveBeenCalled()
@@ -62,20 +72,20 @@ describe('commentOnPR', () => {
   })
 
   it('should handle errors gracefully', async () => {
-    vi.spyOn(core, 'getInput').mockReturnValue('token')
-    vi.spyOn(core, 'warning').mockImplementation(() => {})
-    vi.spyOn(github, 'getOctokit').mockReturnValue({
+    vi.mocked(core.getInput).mockReturnValue('token')
+    vi.mocked(core.warning).mockImplementation(() => {})
+    vi.mocked(github.getOctokit).mockReturnValue({
       rest: {
         issues: {
           listComments: vi.fn().mockRejectedValue(new Error('API error')),
         },
       },
     } as any)
-    vi.spyOn(github, 'context', 'get').mockReturnValue({
+    Object.assign(github.context, {
       eventName: 'pull_request',
       issue: { number: 123 },
       repo: { owner: 'owner', repo: 'repo' },
-    } as any)
+    })
 
     await commentOnPR('body')
     expect(core.warning).toHaveBeenCalled()

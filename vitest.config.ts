@@ -9,11 +9,6 @@ export default defineConfig({
           color: 'blue',
         },
         include: ['filesize-diff/src/**/*.test.ts'],
-        server: {
-          deps: {
-            inline: ['@actions/github'],
-          },
-        },
       },
     }],
     reporters: ['verbose'],
