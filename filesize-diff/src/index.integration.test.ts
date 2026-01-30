@@ -7,14 +7,40 @@ import * as core from '@actions/core'
 import * as github from '@actions/github'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+vi.mock('@actions/cache')
+vi.mock('@actions/core', () => ({
+  getInput: vi.fn(),
+  getBooleanInput: vi.fn(),
+  setFailed: vi.fn(),
+  setOutput: vi.fn(),
+  info: vi.fn(),
+  warning: vi.fn(),
+  startGroup: vi.fn(),
+  endGroup: vi.fn(),
+  summary: {
+    addRaw: vi.fn().mockReturnThis(),
+    write: vi.fn().mockResolvedValue(undefined),
+  },
+}))
+vi.mock('@actions/github', () => ({
+  context: {
+    ref: '',
+    eventName: '',
+    sha: '',
+    repo: { owner: '', repo: '' },
+    issue: { number: 0 },
+  },
+  getOctokit: vi.fn(),
+}))
+
 describe('main function integration', () => {
   let tempDir: string
   let cacheDir: string
 
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.spyOn(core, 'startGroup').mockImplementation(() => {})
-    vi.spyOn(core, 'endGroup').mockImplementation(() => {})
+    vi.mocked(core.startGroup).mockImplementation(() => {})
+    vi.mocked(core.endGroup).mockImplementation(() => {})
     tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'))
     cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cache-'))
   })
@@ -25,9 +51,9 @@ describe('main function integration', () => {
   })
 
   it('should fail when no directories provided', async () => {
-    vi.spyOn(core, 'getInput').mockReturnValue('')
-    vi.spyOn(core, 'getBooleanInput').mockReturnValue(false)
-    vi.spyOn(core, 'setFailed').mockImplementation(() => {})
+    vi.mocked(core.getInput).mockReturnValue('')
+    vi.mocked(core.getBooleanInput).mockReturnValue(false)
+    vi.mocked(core.setFailed).mockImplementation(() => {})
 
     const { run } = await import('./index')
     await run()
@@ -40,26 +66,22 @@ describe('main function integration', () => {
     fs.mkdirSync(dir1, { recursive: true })
     fs.writeFileSync(path.join(dir1, 'file1.js'), 'content1')
 
-    vi.spyOn(core, 'getInput').mockImplementation((name: string) => {
+    vi.mocked(core.getInput).mockImplementation((name: string) => {
       if (name === 'directories') return dir1
       if (name === 'cache-path') return cacheDir
       return ''
     })
-    vi.spyOn(core, 'getBooleanInput').mockReturnValue(false)
-    vi.spyOn(core, 'setOutput').mockImplementation(() => {})
-    vi.spyOn(core, 'info').mockImplementation(() => {})
-    vi.spyOn(core, 'summary', 'get').mockReturnValue({
-      addRaw: vi.fn(),
-      write: vi.fn().mockResolvedValue(undefined),
-    } as any)
-    vi.spyOn(cache, 'restoreCache').mockResolvedValue(undefined)
-    vi.spyOn(cache, 'saveCache').mockResolvedValue(0)
-    vi.spyOn(github, 'context', 'get').mockReturnValue({
+    vi.mocked(core.getBooleanInput).mockReturnValue(false)
+    vi.mocked(core.setOutput).mockImplementation(() => {})
+    vi.mocked(core.info).mockImplementation(() => {})
+    vi.mocked(cache.restoreCache).mockResolvedValue(undefined)
+    vi.mocked(cache.saveCache).mockResolvedValue(0)
+    Object.assign(github.context, {
       ref: 'refs/heads/main',
       eventName: 'push',
       sha: 'abc123',
       repo: { owner: 'owner', repo: 'repo' },
-    } as any)
+    })
 
     const { run } = await import('./index')
     await run()
@@ -73,25 +95,21 @@ describe('main function integration', () => {
     fs.mkdirSync(dir1, { recursive: true })
     fs.writeFileSync(path.join(dir1, 'file1.js'), 'content1')
 
-    vi.spyOn(core, 'getInput').mockImplementation((name: string) => {
+    vi.mocked(core.getInput).mockImplementation((name: string) => {
       if (name === 'directories') return dir1
       if (name === 'cache-path') return cacheDir
       return ''
     })
-    vi.spyOn(core, 'getBooleanInput').mockReturnValue(false)
-    vi.spyOn(core, 'setOutput').mockImplementation(() => {})
-    vi.spyOn(core, 'info').mockImplementation(() => {})
-    vi.spyOn(core, 'summary', 'get').mockReturnValue({
-      addRaw: vi.fn(),
-      write: vi.fn().mockResolvedValue(undefined),
-    } as any)
-    vi.spyOn(cache, 'restoreCache').mockResolvedValue('cache-hit')
-    vi.spyOn(github, 'context', 'get').mockReturnValue({
+    vi.mocked(core.getBooleanInput).mockReturnValue(false)
+    vi.mocked(core.setOutput).mockImplementation(() => {})
+    vi.mocked(core.info).mockImplementation(() => {})
+    vi.mocked(cache.restoreCache).mockResolvedValue('cache-hit')
+    Object.assign(github.context, {
       ref: 'refs/heads/feature',
       eventName: 'pull_request',
       sha: 'abc123',
       repo: { owner: 'owner', repo: 'repo' },
-    } as any)
+    })
 
     const { run } = await import('./index')
     await run()
@@ -114,30 +132,26 @@ describe('main function integration', () => {
       },
     }
 
-    vi.spyOn(core, 'getInput').mockImplementation((name: string) => {
+    vi.mocked(core.getInput).mockImplementation((name: string) => {
       if (name === 'directories') return dir1
       if (name === 'cache-path') return cacheDir
       if (name === 'github-token') return 'token'
       return ''
     })
-    vi.spyOn(core, 'getBooleanInput').mockImplementation((name: string) => {
+    vi.mocked(core.getBooleanInput).mockImplementation((name: string) => {
       return name === 'comment-on-pr'
     })
-    vi.spyOn(core, 'setOutput').mockImplementation(() => {})
-    vi.spyOn(core, 'info').mockImplementation(() => {})
-    vi.spyOn(core, 'summary', 'get').mockReturnValue({
-      addRaw: vi.fn(),
-      write: vi.fn().mockResolvedValue(undefined),
-    } as any)
-    vi.spyOn(cache, 'restoreCache').mockResolvedValue(undefined)
-    vi.spyOn(github, 'getOctokit').mockReturnValue(mockOctokit as any)
-    vi.spyOn(github, 'context', 'get').mockReturnValue({
+    vi.mocked(core.setOutput).mockImplementation(() => {})
+    vi.mocked(core.info).mockImplementation(() => {})
+    vi.mocked(cache.restoreCache).mockResolvedValue(undefined)
+    vi.mocked(github.getOctokit).mockReturnValue(mockOctokit as any)
+    Object.assign(github.context, {
       ref: 'refs/heads/feature',
       eventName: 'pull_request',
       issue: { number: 123 },
       sha: 'abc123',
       repo: { owner: 'owner', repo: 'repo' },
-    } as any)
+    })
 
     const { run } = await import('./index')
     await run()
@@ -150,27 +164,23 @@ describe('main function integration', () => {
     fs.mkdirSync(dir1, { recursive: true })
     fs.writeFileSync(path.join(dir1, 'file1.js'), 'content1')
 
-    vi.spyOn(core, 'getInput').mockImplementation((name: string) => {
+    vi.mocked(core.getInput).mockImplementation((name: string) => {
       if (name === 'directories') return dir1
       if (name === 'cache-path') return cacheDir
       return ''
     })
-    vi.spyOn(core, 'getBooleanInput').mockReturnValue(false)
-    vi.spyOn(core, 'setOutput').mockImplementation(() => {})
-    vi.spyOn(core, 'info').mockImplementation(() => {})
-    vi.spyOn(core, 'warning').mockImplementation(() => {})
-    vi.spyOn(core, 'summary', 'get').mockReturnValue({
-      addRaw: vi.fn(),
-      write: vi.fn().mockResolvedValue(undefined),
-    } as any)
-    vi.spyOn(cache, 'restoreCache').mockResolvedValue(undefined)
-    vi.spyOn(cache, 'saveCache').mockRejectedValue(new Error('Cache save failed'))
-    vi.spyOn(github, 'context', 'get').mockReturnValue({
+    vi.mocked(core.getBooleanInput).mockReturnValue(false)
+    vi.mocked(core.setOutput).mockImplementation(() => {})
+    vi.mocked(core.info).mockImplementation(() => {})
+    vi.mocked(core.warning).mockImplementation(() => {})
+    vi.mocked(cache.restoreCache).mockResolvedValue(undefined)
+    vi.mocked(cache.saveCache).mockRejectedValue(new Error('Cache save failed'))
+    Object.assign(github.context, {
       ref: 'refs/heads/main',
       eventName: 'push',
       sha: 'abc123',
       repo: { owner: 'owner', repo: 'repo' },
-    } as any)
+    })
 
     const { run } = await import('./index')
     await run()
@@ -179,16 +189,16 @@ describe('main function integration', () => {
 
     // Test non-Error exception
     vi.clearAllMocks()
-    vi.spyOn(cache, 'saveCache').mockRejectedValue('String error')
+    vi.mocked(cache.saveCache).mockRejectedValue('String error')
     await run()
     expect(core.warning).toHaveBeenCalledWith(expect.stringContaining('Failed to save baseline cache'))
   })
 
   it('should handle errors in main function', async () => {
-    vi.spyOn(core, 'getInput').mockImplementation(() => {
+    vi.mocked(core.getInput).mockImplementation(() => {
       throw new Error('Input error')
     })
-    vi.spyOn(core, 'setFailed').mockImplementation(() => {})
+    vi.mocked(core.setFailed).mockImplementation(() => {})
 
     const { run } = await import('./index')
     await run()
@@ -197,11 +207,11 @@ describe('main function integration', () => {
   })
 
   it('should handle non-Error exceptions', async () => {
-    vi.spyOn(core, 'getInput').mockImplementation(() => {
+    vi.mocked(core.getInput).mockImplementation(() => {
       // eslint-disable-next-line no-throw-literal
       throw 'String error'
     })
-    vi.spyOn(core, 'setFailed').mockImplementation(() => {})
+    vi.mocked(core.setFailed).mockImplementation(() => {})
 
     const { run } = await import('./index')
     await run()
@@ -214,28 +224,24 @@ describe('main function integration', () => {
     fs.mkdirSync(dir1, { recursive: true })
     fs.writeFileSync(path.join(dir1, 'file1.js'), 'content1')
 
-    vi.spyOn(core, 'getInput').mockImplementation((name: string) => {
+    vi.mocked(core.getInput).mockImplementation((name: string) => {
       if (name === 'directories') return dir1
       if (name === 'cache-path') return cacheDir
       return ''
     })
-    vi.spyOn(core, 'getBooleanInput').mockImplementation(() => {
+    vi.mocked(core.getBooleanInput).mockImplementation(() => {
       return undefined as any // Test default behavior
     })
-    vi.spyOn(core, 'setOutput').mockImplementation(() => {})
-    vi.spyOn(core, 'info').mockImplementation(() => {})
-    vi.spyOn(core, 'summary', 'get').mockReturnValue({
-      addRaw: vi.fn(),
-      write: vi.fn().mockResolvedValue(undefined),
-    } as any)
-    vi.spyOn(cache, 'restoreCache').mockResolvedValue(undefined)
-    vi.spyOn(cache, 'saveCache').mockResolvedValue(0)
-    vi.spyOn(github, 'context', 'get').mockReturnValue({
+    vi.mocked(core.setOutput).mockImplementation(() => {})
+    vi.mocked(core.info).mockImplementation(() => {})
+    vi.mocked(cache.restoreCache).mockResolvedValue(undefined)
+    vi.mocked(cache.saveCache).mockResolvedValue(0)
+    Object.assign(github.context, {
       ref: 'refs/heads/feature',
       eventName: 'pull_request',
       sha: 'abc123',
       repo: { owner: 'owner', repo: 'repo' },
-    } as any)
+    })
 
     const { run } = await import('./index')
     await run()
@@ -255,25 +261,21 @@ describe('main function integration', () => {
     fs.mkdirSync(path.dirname(cachePath), { recursive: true })
     fs.writeFileSync(cachePath, JSON.stringify([{ file: 'file1.js', size: fileSize }], null, 2))
 
-    vi.spyOn(core, 'getInput').mockImplementation((name: string) => {
+    vi.mocked(core.getInput).mockImplementation((name: string) => {
       if (name === 'directories') return dir1
       if (name === 'cache-path') return cacheDir
       return ''
     })
-    vi.spyOn(core, 'getBooleanInput').mockReturnValue(false)
-    const setOutputSpy = vi.spyOn(core, 'setOutput').mockImplementation(() => {})
-    const infoSpy = vi.spyOn(core, 'info').mockImplementation(() => {})
-    vi.spyOn(core, 'summary', 'get').mockReturnValue({
-      addRaw: vi.fn(),
-      write: vi.fn().mockResolvedValue(undefined),
-    } as any)
-    vi.spyOn(cache, 'restoreCache').mockResolvedValue('cache-hit')
-    vi.spyOn(github, 'context', 'get').mockReturnValue({
+    vi.mocked(core.getBooleanInput).mockReturnValue(false)
+    const setOutputSpy = vi.mocked(core.setOutput).mockImplementation(() => {})
+    const infoSpy = vi.mocked(core.info).mockImplementation(() => {})
+    vi.mocked(cache.restoreCache).mockResolvedValue('cache-hit')
+    Object.assign(github.context, {
       ref: 'refs/heads/feature',
       eventName: 'pull_request',
       sha: 'abc123',
       repo: { owner: 'owner', repo: 'repo' },
-    } as any)
+    })
 
     const { run } = await import('./index')
     await run()
@@ -295,33 +297,28 @@ describe('main function integration', () => {
     process.chdir(tempDir)
 
     try {
-      const addRawSpy = vi.fn()
-      vi.spyOn(core, 'getInput').mockImplementation((name: string) => {
+      vi.mocked(core.getInput).mockImplementation((name: string) => {
         if (name === 'directories') return 'dist'
         if (name === 'cache-path') return cacheDir
         return ''
       })
-      vi.spyOn(core, 'getBooleanInput').mockReturnValue(false)
-      vi.spyOn(core, 'setOutput').mockImplementation(() => {})
-      vi.spyOn(core, 'info').mockImplementation(() => {})
-      vi.spyOn(core, 'summary', 'get').mockReturnValue({
-        addRaw: addRawSpy,
-        write: vi.fn().mockResolvedValue(undefined),
-      } as any)
-      vi.spyOn(cache, 'restoreCache').mockResolvedValue(undefined)
-      vi.spyOn(github, 'context', 'get').mockReturnValue({
+      vi.mocked(core.getBooleanInput).mockReturnValue(false)
+      vi.mocked(core.setOutput).mockImplementation(() => {})
+      vi.mocked(core.info).mockImplementation(() => {})
+      vi.mocked(cache.restoreCache).mockResolvedValue(undefined)
+      Object.assign(github.context, {
         ref: 'refs/heads/feature',
         eventName: 'pull_request',
         sha: 'abc123',
         repo: { owner: 'owner', repo: 'repo' },
-      } as any)
+      })
 
       const { run } = await import('./index')
       await run()
 
       // Verify that the summary was called and contains the new format
-      expect(addRawSpy).toHaveBeenCalled()
-      const summaryCall = addRawSpy.mock.calls[0][0]
+      expect(core.summary.addRaw).toHaveBeenCalled()
+      const summaryCall = vi.mocked(core.summary.addRaw).mock.calls[0][0]
       // Should contain the main title
       expect(summaryCall).toContain('# 📋 File size Summary')
       // Should be wrapped in details tags with directory name as summary

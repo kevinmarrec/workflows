@@ -20,6 +20,8 @@ import {
   sortFiles,
 } from './index'
 
+vi.mock('@actions/core')
+
 describe('getFilePriority', () => {
   it('should return 0 for regular files', () => {
     expect(getFilePriority('index.html')).toBe(0)
@@ -191,7 +193,7 @@ describe('analyzeDirectory', () => {
   })
 
   it('should throw error if directory does not exist', async () => {
-    vi.spyOn(core, 'setFailed').mockImplementation(() => {})
+    vi.mocked(core.setFailed).mockImplementation(() => {})
     await expect(
       analyzeDirectory(path.join(tempDir, 'nonexistent'), path.join(cacheDir, 'cache.json')),
     ).rejects.toThrow()

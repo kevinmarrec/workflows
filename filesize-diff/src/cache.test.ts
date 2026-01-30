@@ -10,6 +10,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { loadCachedStats, restoreCache, saveCache, saveStats } from './cache'
 import type { FileStat } from './index'
 
+vi.mock('@actions/cache')
+vi.mock('@actions/core')
+vi.mock('@actions/github', () => ({
+  context: {
+    ref: '',
+    sha: '',
+  },
+}))
+
 describe('loadCachedStats', () => {
   let tempDir: string
 
@@ -60,16 +69,13 @@ describe('restoreCache', () => {
   })
 
   it('should restore cache on non-main branches', async () => {
-    const mockRestoreCache = vi.fn().mockResolvedValue('cache-key-123')
-    vi.spyOn(cache, 'restoreCache').mockImplementation(mockRestoreCache)
-    vi.spyOn(core, 'info').mockImplementation(() => {})
-    vi.spyOn(github, 'context', 'get').mockReturnValue({
-      ref: 'refs/heads/feature-branch',
-    } as any)
+    vi.mocked(cache.restoreCache).mockResolvedValue('cache-key-123')
+    vi.mocked(core.info).mockImplementation(() => {})
+    Object.assign(github.context, { ref: 'refs/heads/feature-branch' })
 
     const result = await restoreCache('/path/to/cache', 'cache-key')
     expect(result).toBe('cache-key-123')
-    expect(mockRestoreCache).toHaveBeenCalledWith(
+    expect(cache.restoreCache).toHaveBeenCalledWith(
       ['/path/to/cache'],
       'cache-key',
       ['cache-key-'],
@@ -79,11 +85,9 @@ describe('restoreCache', () => {
   })
 
   it('should return undefined when no cache found on non-main branches', async () => {
-    vi.spyOn(cache, 'restoreCache').mockResolvedValue(undefined)
-    vi.spyOn(core, 'info').mockImplementation(() => {})
-    vi.spyOn(github, 'context', 'get').mockReturnValue({
-      ref: 'refs/heads/feature-branch',
-    } as any)
+    vi.mocked(cache.restoreCache).mockResolvedValue(undefined)
+    vi.mocked(core.info).mockImplementation(() => {})
+    Object.assign(github.context, { ref: 'refs/heads/feature-branch' })
 
     const result = await restoreCache('/path/to/cache', 'cache-key')
     expect(result).toBeUndefined()
@@ -91,11 +95,9 @@ describe('restoreCache', () => {
   })
 
   it('should skip restore on main branch', async () => {
-    vi.spyOn(cache, 'restoreCache').mockResolvedValue(undefined)
-    vi.spyOn(core, 'info').mockImplementation(() => {})
-    vi.spyOn(github, 'context', 'get').mockReturnValue({
-      ref: 'refs/heads/main',
-    } as any)
+    vi.mocked(cache.restoreCache).mockResolvedValue(undefined)
+    vi.mocked(core.info).mockImplementation(() => {})
+    Object.assign(github.context, { ref: 'refs/heads/main' })
 
     const result = await restoreCache('/path/to/cache', 'cache-key')
     expect(result).toBeUndefined()
@@ -110,42 +112,32 @@ describe('saveCache', () => {
   })
 
   it('should save cache on main branch', async () => {
-    const mockSaveCache = vi.fn().mockResolvedValue(undefined)
-    vi.spyOn(cache, 'saveCache').mockImplementation(mockSaveCache)
-    vi.spyOn(core, 'info').mockImplementation(() => {})
-    vi.spyOn(github, 'context', 'get').mockReturnValue({
-      ref: 'refs/heads/main',
-      sha: 'abc123',
-    } as any)
+    vi.mocked(cache.saveCache).mockResolvedValue(0)
+    vi.mocked(core.info).mockImplementation(() => {})
+    Object.assign(github.context, { ref: 'refs/heads/main', sha: 'abc123' })
 
     await saveCache('/path/to/cache', 'cache-key')
-    expect(mockSaveCache).toHaveBeenCalledWith(['/path/to/cache'], 'cache-key-abc123')
+    expect(cache.saveCache).toHaveBeenCalledWith(['/path/to/cache'], 'cache-key-abc123')
     expect(core.info).toHaveBeenCalledWith('Attempting to save baseline cache with key: cache-key-abc123')
     expect(core.info).toHaveBeenCalledWith('Baseline cache saved successfully (Cache reserved and uploaded)')
   })
 
   it('should handle save cache errors gracefully', async () => {
-    vi.spyOn(cache, 'saveCache').mockRejectedValue(new Error('Cache save failed'))
-    vi.spyOn(core, 'info').mockImplementation(() => {})
-    vi.spyOn(core, 'warning').mockImplementation(() => {})
-    vi.spyOn(github, 'context', 'get').mockReturnValue({
-      ref: 'refs/heads/main',
-      sha: 'abc123',
-    } as any)
+    vi.mocked(cache.saveCache).mockRejectedValue(new Error('Cache save failed'))
+    vi.mocked(core.info).mockImplementation(() => {})
+    vi.mocked(core.warning).mockImplementation(() => {})
+    Object.assign(github.context, { ref: 'refs/heads/main', sha: 'abc123' })
 
     await saveCache('/path/to/cache', 'cache-key')
     expect(core.warning).toHaveBeenCalledWith('Failed to save baseline cache: Cache save failed')
   })
 
   it('should skip save on non-main branches', async () => {
-    const mockSaveCache = vi.spyOn(cache, 'saveCache')
-    vi.spyOn(core, 'info').mockImplementation(() => {})
-    vi.spyOn(github, 'context', 'get').mockReturnValue({
-      ref: 'refs/heads/feature-branch',
-    } as any)
+    vi.mocked(core.info).mockImplementation(() => {})
+    Object.assign(github.context, { ref: 'refs/heads/feature-branch' })
 
     await saveCache('/path/to/cache', 'cache-key')
-    expect(mockSaveCache).not.toHaveBeenCalled()
+    expect(cache.saveCache).not.toHaveBeenCalled()
     expect(core.info).toHaveBeenCalledWith('Skipping baseline cache save (not on main branch)')
   })
 })
