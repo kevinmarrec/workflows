@@ -10,6 +10,10 @@ inputs:
     description: Whether to fetch all history for all branches and tags.
     default: 'false'
 
+  working-directory:
+    description: The working directory to use for the action.
+    default: '.'
+
   auto-install:
     description: Whether to automatically install dependencies.
     default: 'true'
@@ -35,5 +39,6 @@ runs:
 
     - name: Install dependencies
       shell: bash
+      working-directory: ${{ inputs.working-directory }}
       run: bun install --frozen-lockfile
       if: ${{ inputs.auto-install == 'true' }}
