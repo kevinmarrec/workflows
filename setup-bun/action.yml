@@ -12,7 +12,7 @@ inputs:
 
   working-directory:
     description: The working directory to use for the action.
-    default: '.'
+    default: .
 
   auto-install:
     description: Whether to automatically install dependencies.
