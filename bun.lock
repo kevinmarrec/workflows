@@ -4,8 +4,8 @@
   "workspaces": {
     "": {
       "devDependencies": {
-        "@kevinmarrec/eslint-config": "^1.12.0",
-        "@kevinmarrec/tsconfig": "^1.12.0",
+        "@kevinmarrec/eslint-config": "^1.12.1",
+        "@kevinmarrec/tsconfig": "^1.12.1",
         "@vitest/coverage-v8": "4.0.18",
         "eslint": "^9.39.3",
         "knip": "^5.85.0",
@@ -190,9 +190,9 @@
 
     "@jridgewell/trace-mapping": ["@jridgewell/trace-mapping@0.3.31", "", { "dependencies": { "@jridgewell/resolve-uri": "^3.1.0", "@jridgewell/sourcemap-codec": "^1.4.14" } }, "sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw=="],
 
-    "@kevinmarrec/eslint-config": ["@kevinmarrec/eslint-config@1.12.0", "", { "dependencies": { "@antfu/eslint-config": "^7.6.1", "@unocss/eslint-plugin": "^66.6.2", "defu": "^6.1.4", "eslint-flat-config-utils": "^3.0.1", "eslint-plugin-format": "^2.0.1", "eslint-plugin-vuejs-accessibility": "^2.5.0", "tinyglobby": "^0.2.15" }, "peerDependencies": { "eslint": ">=9.20.0" } }, "sha512-iY2TqZboQmtk4M+XkFtkgbtftS8Kh+bfcSmIe3jALMdh8WLU1uM1skQriH1968wwJm4SItkLIM70idzUB3JloA=="],
+    "@kevinmarrec/eslint-config": ["@kevinmarrec/eslint-config@1.12.1", "", { "dependencies": { "@antfu/eslint-config": "^7.6.1", "@unocss/eslint-plugin": "^66.6.4", "defu": "^6.1.4", "eslint-flat-config-utils": "^3.0.1", "eslint-plugin-format": "^2.0.1", "eslint-plugin-vuejs-accessibility": "^2.5.0", "tinyglobby": "^0.2.15" }, "peerDependencies": { "eslint": ">=9.20.0" } }, "sha512-lT923bHFeTqs7jSZg6XMK6tvsEKN29g9MK5gNxZr+HmxhwJWSb7vQbaAqvpBVWWvMZsg2ljq3KxV72pQaw+5yg=="],
 
-    "@kevinmarrec/tsconfig": ["@kevinmarrec/tsconfig@1.12.0", "", {}, "sha512-vgTb1SiN0pZll7gbg0Whp+Bp6kDrjAhHZ4fKL2MK3WyMa2iJZoXdZxYgaAfdqpt/5agicJmvWHu6Q3Q6EVe1KQ=="],
+    "@kevinmarrec/tsconfig": ["@kevinmarrec/tsconfig@1.12.1", "", {}, "sha512-PJryCShE16BfOOQLUitMFaJ3Dnu5FbrGEW8v0L7wSvBx45mQXGNV8va6Tik3hi4tLsIy6RInv6/3fgA2R9C3Mg=="],
 
     "@napi-rs/wasm-runtime": ["@napi-rs/wasm-runtime@1.1.1", "", { "dependencies": { "@emnapi/core": "^1.7.1", "@emnapi/runtime": "^1.7.1", "@tybys/wasm-util": "^0.10.1" } }, "sha512-p64ah1M1ld8xjWv3qbvFwHiFVWrq1yFvV4f7w+mzaqiR4IlSgkqhcRdHwsGgomwzBH51sRY4NEowLxnaBjcW/A=="],
 
