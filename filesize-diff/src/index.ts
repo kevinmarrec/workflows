@@ -9,6 +9,9 @@ import { glob } from 'tinyglobby'
 import { loadCachedStats, restoreCache, saveCache, saveStats } from './cache'
 import { commentOnPR } from './comment'
 
+const VITE_HASH_REGEX = /-[\w-]{8,10}(\.[a-z]+)$/i
+const PATH_SEPARATORS_REGEX = /[\\/]/g
+
 export interface FileStat {
   file: string
   size: number
@@ -42,11 +45,11 @@ export function normalizeAssetFilename(file: string): string {
 
   // Normalize Vite build hashed asset filenames (e.g., asset-Ckdnwnhq.js -> asset.js)
   // Vite generates url-safe base64 hashes (8-10 chars, a-z, A-Z, 0-9, -, _) in format: filename-[hash].ext
-  return file.replace(/-[\w-]{8,10}(\.[a-z]+)$/i, '$1')
+  return file.replace(VITE_HASH_REGEX, '$1')
 }
 
 export function sortFiles(files: string[]): string[] {
-  return [...files].sort((a, b) => {
+  return files.toSorted((a, b) => {
     const scoreDiff = getFilePriority(b) - getFilePriority(a)
     return scoreDiff !== 0 ? scoreDiff : a.localeCompare(b)
   })
@@ -127,7 +130,7 @@ export function generateDiffTable(
   const cachedMap = hasCache ? new Map(cached.map(s => [s.file, s.size])) : new Map()
 
   const allFiles = new Set([...currentMap.keys(), ...cachedMap.keys()])
-  const sortedFiles = sortFiles(Array.from(allFiles))
+  const sortedFiles = sortFiles([...allFiles])
 
   const rows: string[] = []
   let totalCurrent = 0
@@ -227,7 +230,7 @@ export async function run(): Promise<void> {
 
     for (const directory of directories) {
       // Use normalized directory path for cache filename to avoid collisions
-      const cacheFileName = directory.replace(/[\\/]/g, '-')
+      const cacheFileName = directory.replace(PATH_SEPARATORS_REGEX, '-')
       const cachePath = join(cachePathBase, `${cacheFileName}.json`)
 
       core.info(`Analyzing ${directory}...`)
@@ -239,7 +242,7 @@ export async function run(): Promise<void> {
       }
 
       // Extract last row (total row) and replace "Total" with directory name
-      const lastRow = tableRows[tableRows.length - 1]
+      const lastRow = tableRows.at(-1)!
       const totalRow = lastRow.replace('**Total**', directory)
       totalRows.push(totalRow)
 
