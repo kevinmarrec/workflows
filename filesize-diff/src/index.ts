@@ -58,10 +58,12 @@ export function sortFiles(files: string[]): string[] {
 export async function getFileStats(directory: string): Promise<FileStat[]> {
   const files = await glob(['**/*'], { cwd: directory })
 
-  const fileStats: FileStat[] = files.map(file => ({
-    file: normalizeAssetFilename(file),
-    size: fs.statSync(join(directory, file)).size,
-  }))
+  const fileStats = await Promise.all(
+    files.map(async file => ({
+      file: normalizeAssetFilename(file),
+      size: (await fs.promises.stat(join(directory, file))).size,
+    })),
+  )
 
   fileStats.sort((a, b) => {
     const scoreDiff = getFilePriority(b.file) - getFilePriority(a.file)
@@ -124,7 +126,7 @@ export function generateTotalTable(
 export function generateDiffTable(
   current: FileStat[],
   cached: FileStat[] | null,
-): string[] {
+): { tableRows: string[], hasChanges: boolean } {
   const hasCache = cached !== null
   const currentMap = new Map(current.map(s => [s.file, s.size]))
   const cachedMap = hasCache ? new Map(cached.map(s => [s.file, s.size])) : new Map()
@@ -135,6 +137,7 @@ export function generateDiffTable(
   const rows: string[] = []
   let totalCurrent = 0
   let totalCached = 0
+  let hasChanges = !hasCache
 
   for (const file of sortedFiles) {
     const currentSize = currentMap.get(file) ?? 0
@@ -143,6 +146,7 @@ export function generateDiffTable(
     totalCached += cachedSize
 
     if (hasCache) {
+      if (currentSize !== cachedSize) hasChanges = true
       const diff = formatDiff(currentSize, cachedSize)
       rows.push(`| ${file} | ${filesize(cachedSize)} | ${filesize(currentSize)} | ${diff} |`)
     }
@@ -155,10 +159,10 @@ export function generateDiffTable(
     ? `| File | ${COLUMN_HEADERS.BASE} | ${COLUMN_HEADERS.HEAD} | ${COLUMN_HEADERS.DELTA} |\n| :--- | ---: | ---: | ---: |`
     : '| File | Size |\n| :--- | ---: |'
 
-  const table = [header, ...rows]
-  table.push(formatTotalRow('Total', totalCurrent, totalCached, hasCache))
+  const tableRows = [header, ...rows]
+  tableRows.push(formatTotalRow('Total', totalCurrent, totalCached, hasCache))
 
-  return table
+  return { tableRows, hasChanges }
 }
 
 export async function analyzeDirectory(
@@ -174,39 +178,12 @@ export async function analyzeDirectory(
   const currentStats = await getFileStats(directory)
 
   // Load cached stats
-  let cachedStats: FileStat[] | null = null
-  let hasChanges = false
-
-  if (fs.existsSync(cachePath)) {
-    cachedStats = loadCachedStats(cachePath)
-    if (cachedStats) {
-      // Check if there are changes
-      const currentMap = new Map(currentStats.map(s => [s.file, s.size]))
-      const cachedMap = new Map(cachedStats.map(s => [s.file, s.size]))
-      const allFiles = new Set([...currentMap.keys(), ...cachedMap.keys()])
-
-      for (const file of allFiles) {
-        const currentSize = currentMap.get(file) ?? 0
-        const cachedSize = cachedMap.get(file) ?? 0
-        if (currentSize !== cachedSize) {
-          hasChanges = true
-          break
-        }
-      }
-    }
-    else {
-      hasChanges = true // New cache file means changes
-    }
-  }
-  else {
-    hasChanges = true // No cache means changes
-  }
+  const cachedStats = fs.existsSync(cachePath) ? loadCachedStats(cachePath) : null
 
   // Save current stats
   saveStats(currentStats, cachePath)
 
-  const tableRows = generateDiffTable(currentStats, cachedStats)
-  return { tableRows, hasChanges }
+  return generateDiffTable(currentStats, cachedStats)
 }
 
 export async function run(): Promise<void> {
@@ -224,19 +201,23 @@ export async function run(): Promise<void> {
 
     await restoreCache(cachePathBase, cacheKey)
 
+    const results = await Promise.all(
+      directories.map(async (directory) => {
+        // Use normalized directory path for cache filename to avoid collisions
+        const cacheFileName = directory.replace(PATH_SEPARATORS_REGEX, '-')
+        const cachePath = join(cachePathBase, `${cacheFileName}.json`)
+
+        core.info(`Analyzing ${directory}...`)
+
+        return { directory, ...(await analyzeDirectory(directory, cachePath)) }
+      }),
+    )
+
     const detailsSections: string[] = []
     const totalRows: string[] = []
     let overallHasChanges = false
 
-    for (const directory of directories) {
-      // Use normalized directory path for cache filename to avoid collisions
-      const cacheFileName = directory.replace(PATH_SEPARATORS_REGEX, '-')
-      const cachePath = join(cachePathBase, `${cacheFileName}.json`)
-
-      core.info(`Analyzing ${directory}...`)
-
-      const { tableRows, hasChanges } = await analyzeDirectory(directory, cachePath)
-
+    for (const { directory, tableRows, hasChanges } of results) {
       if (hasChanges) {
         overallHasChanges = true
       }

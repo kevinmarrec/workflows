@@ -93,11 +93,12 @@ describe('formatTotalRow', () => {
 describe('generateDiffTable', () => {
   it('should generate table without cache', () => {
     const current: FileStat[] = [{ file: 'index.html', size: 100 }]
-    const result = generateDiffTable(current, null)
-    const joined = result.join('\n')
+    const { tableRows, hasChanges } = generateDiffTable(current, null)
+    const joined = tableRows.join('\n')
     expect(joined).toContain('File')
     expect(joined).toContain('index.html')
     expect(joined).toContain('**Total**')
+    expect(hasChanges).toBe(true)
   })
 
   it('should generate table with cache and sort by priority', () => {
@@ -109,13 +110,14 @@ describe('generateDiffTable', () => {
       { file: 'index.html', size: 100 },
       { file: 'assets/bundle.js', size: 200 },
     ]
-    const result = generateDiffTable(current, cached)
-    const joined = result.join('\n')
+    const { tableRows, hasChanges } = generateDiffTable(current, cached)
+    const joined = tableRows.join('\n')
     expect(joined).toContain('Base (Before Merge)')
     expect(joined).toContain('Head (After Merge)')
     expect(joined).toContain('Delta')
     expect(joined).toContain('**Total**')
     expect(joined.indexOf('assets/bundle.js')).toBeLessThan(joined.indexOf('index.html'))
+    expect(hasChanges).toBe(true)
   })
 })
 
