@@ -29,7 +29,7 @@ jobs:
         run: bun run test:coverage
 
       - name: Report coverage
-        uses: davelosert/vitest-coverage-report-action@bd52af59d9cd548ea7cd405044d2458042e6d888 # v2.10.0
+        uses: davelosert/vitest-coverage-report-action@3c50566c523e04813df28de8f7c48dd97d663f1c # v2.11.2
         with:
           file-coverage-mode: all
           comment-on: none
