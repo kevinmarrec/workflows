@@ -22,8 +22,8 @@
     "@kevinmarrec/tsconfig": "^1.17.0",
     "@types/node": "^24.12.2",
     "@vitest/coverage-v8": "4.1.5",
-    "eslint": "^10.2.1",
-    "knip": "^6.7.0",
+    "eslint": "^10.3.0",
+    "knip": "^6.11.0",
     "typescript": "~6.0.3",
     "vitest": "^4.1.5"
   },
