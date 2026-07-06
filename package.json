@@ -18,12 +18,12 @@
     "test:coverage": "vitest --coverage"
   },
   "devDependencies": {
-    "@kevinmarrec/eslint-config": "^1.18.1",
-    "@kevinmarrec/tsconfig": "^1.18.1",
-    "@types/node": "^26.0.1",
+    "@kevinmarrec/eslint-config": "^1.19.0",
+    "@kevinmarrec/tsconfig": "^1.19.0",
+    "@types/node": "^26.1.0",
     "@vitest/coverage-v8": "4.1.9",
     "eslint": "^10.6.0",
-    "knip": "^6.23.0",
+    "knip": "^6.24.0",
     "typescript": "~6.0.3",
     "vitest": "^4.1.9"
   },
