@@ -20,12 +20,12 @@
   "devDependencies": {
     "@kevinmarrec/eslint-config": "^1.19.0",
     "@kevinmarrec/tsconfig": "^1.19.0",
-    "@types/node": "^26.1.0",
-    "@vitest/coverage-v8": "4.1.9",
-    "eslint": "^10.6.0",
-    "knip": "^6.24.0",
+    "@types/node": "^26.1.1",
+    "@vitest/coverage-v8": "4.1.10",
+    "eslint": "^10.7.0",
+    "knip": "^6.26.0",
     "typescript": "~6.0.3",
-    "vitest": "^4.1.9"
+    "vitest": "^4.1.10"
   },
   "simple-git-hooks": {
     "pre-commit": "echo 'Pre-commit checks' && bun run check:artifacts"
