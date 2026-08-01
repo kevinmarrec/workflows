@@ -20,10 +20,10 @@
   "devDependencies": {
     "@kevinmarrec/eslint-config": "^1.20.0",
     "@kevinmarrec/tsconfig": "^1.20.0",
-    "@types/node": "^26.1.1",
+    "@types/node": "^26.1.2",
     "@vitest/coverage-v8": "4.1.10",
     "eslint": "^10.8.0",
-    "knip": "^6.29.0",
+    "knip": "^6.31.0",
     "typescript": "~6.0.3",
     "vitest": "^4.1.10"
   },
