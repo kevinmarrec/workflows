@@ -1,0 +1,25 @@
+name: GitOps Render
+description: Render the Helm charts referenced by Argo CD Applications, and diff them against a base commit
+
+inputs:
+  apps:
+    description: Glob matching the Argo CD Application manifests to render (relative to workspace root)
+    required: false
+    default: .gitops/apps/*.yaml
+
+  base-sha:
+    description: Commit to render as the baseline for the diff. Omit to render without a baseline.
+    required: false
+
+  max-diff-lines:
+    description: Maximum number of diff lines to include per application in the job summary
+    required: false
+    default: '300'
+
+outputs:
+  has-changes:
+    description: Whether any rendered output differs from the base commit
+
+runs:
+  using: node24
+  main: dist/run.js

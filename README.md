@@ -1,6 +1,6 @@
 # kevinmarrec/workflows
 
-A collection of reusable GitHub Actions workflows and actions for TypeScript projects.
+A collection of reusable GitHub Actions workflows and actions.
 
 ## Features
 
@@ -26,3 +26,4 @@ uses: kevinmarrec/workflows/.github/workflows/release.yml@main
 
 - [`setup-bun/action.yml`](./setup-bun/action.yml): Setup Bun, Node.js and installs dependencies
 - [`filesize-diff/action.yml`](./filesize-diff/action.yml): Analyze file size differences between the current branch and main branch, and comment on PRs with changes
+- [`gitops-render/action.yml`](./gitops-render/action.yml): Render the Helm charts referenced by Argo CD Applications, and diff them against a base commit
