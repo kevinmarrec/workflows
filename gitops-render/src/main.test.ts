@@ -180,6 +180,20 @@ describe('main', () => {
     expect(output.results.find(result => result.app === 'traefik')?.outcome.status).toBe('unchanged')
   })
 
+  it('propagates a failure that is not an unsupported source', async () => {
+    const deps: Deps = {
+      listApps: async () => ['.gitops/apps/traefik.yaml'],
+      readApp: async () => { throw new Error('EACCES: permission denied') },
+      render: async () => ({ ok: true, manifests: '' }),
+      materializeBase: async () => null,
+      cleanupBase: async () => {},
+    }
+
+    await expect(main({ apps: '.gitops/apps/*.yaml', maxDiffLines: 300 }, deps))
+      .rejects
+      .toThrow('EACCES: permission denied')
+  })
+
   it('removes the base worktree once rendering is done', async () => {
     const { cleanupBase, run } = scenario()
 

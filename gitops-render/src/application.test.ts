@@ -130,6 +130,74 @@ spec:
       .toThrow(UnsupportedSourceError)
   })
 
+  it('rejects a chart source with no repoURL', () => {
+    const app = `
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: traefik
+spec:
+  sources:
+    - chart: traefik
+      targetRevision: 41.1.0
+  destination:
+    namespace: traefik
+`
+
+    expect(() => chartSources(app, '.gitops/apps/traefik.yaml'))
+      .toThrow(UnsupportedSourceError)
+  })
+
+  it('renders a chart source that declares no helm block', () => {
+    const app = `
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: traefik
+spec:
+  sources:
+    - repoURL: https://traefik.github.io/charts
+      chart: traefik
+      targetRevision: 41.1.0
+  destination:
+    namespace: traefik
+`
+
+    expect(chartSources(app, '.gitops/apps/traefik.yaml')[0].valueFiles).toEqual([])
+  })
+
+  it('skips an Application that declares no source at all', () => {
+    const app = `
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: traefik
+spec:
+  destination:
+    namespace: traefik
+`
+
+    expect(chartSources(app, '.gitops/apps/traefik.yaml')).toEqual([])
+  })
+
+  it('names an unrecognised source even when it has no repoURL', () => {
+    const app = `
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: traefik
+spec:
+  sources:
+    - plugin:
+        name: kustomize-build
+  destination:
+    namespace: traefik
+`
+
+    expect(() => chartSources(app, '.gitops/apps/traefik.yaml'))
+      .toThrow('source (no repoURL) is neither a chart, a repository path, nor a values ref')
+  })
+
   it('rejects a source that is neither a chart, a path, nor a values ref', () => {
     const app = `
 apiVersion: argoproj.io/v1alpha1

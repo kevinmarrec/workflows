@@ -79,11 +79,16 @@ export function chartSources(text: string, file: string): ChartSource[] {
         throw new UnsupportedSourceError(file, `chart source "${source.chart}" has no spec.destination.namespace`)
       }
 
+      // Without it helm would be handed `--repo ""`, and fail far from the cause.
+      if (!source.repoURL) {
+        throw new UnsupportedSourceError(file, `chart source "${source.chart}" has no repoURL`)
+      }
+
       charts.push({
         app,
         file,
         namespace,
-        repo: source.repoURL ?? '',
+        repo: source.repoURL,
         chart: source.chart,
         revision: String(source.targetRevision),
         valueFiles: ((source.helm?.valueFiles ?? []) as string[]).map(path => path.replace(VALUES_MARKER, '')),
