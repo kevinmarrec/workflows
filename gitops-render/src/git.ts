@@ -1,11 +1,7 @@
-import { x } from 'tinyexec'
-
-import type { Exec } from './helm'
+import { defaultExec, type Exec } from './exec'
 
 /** `github.event.before` on a branch's first push. There is no such commit to diff against. */
 const EMPTY_SHA = '0'.repeat(40)
-
-const defaultExec: Exec = async (command, args) => x(command, args)
 
 export async function hasCommit(sha: string, exec: Exec = defaultExec): Promise<boolean> {
   if (sha === EMPTY_SHA) return false

@@ -44,8 +44,13 @@ function renderOutcome({ app, version, outcome }: AppResult): string[] {
   }
 }
 
+/** Both the summary header and the job's exit status count these, so they count them the same way. */
+export function countFailed(results: AppResult[]): number {
+  return results.filter(result => result.outcome.status === 'failed').length
+}
+
 export function renderSummary(results: AppResult[]): string {
-  const failed = results.filter(result => result.outcome.status === 'failed').length
+  const failed = countFailed(results)
 
   return [
     '## GitOps render',

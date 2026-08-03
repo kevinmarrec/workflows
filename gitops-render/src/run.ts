@@ -24,9 +24,9 @@ export async function run(): Promise<void> {
       listApps: async pattern => (await glob([pattern])).sort(),
       readApp: file => readFile(file, 'utf8'),
 
-      render: async (source, root) => {
-        const result = await renderChart(source, { root })
-        core.info(`${root === '.' ? 'head' : 'base'}: ${source.app} ${result.ok ? 'ok' : 'FAIL'} ${source.chart} ${source.revision}`)
+      render: async (source, root, tree) => {
+        const result = await renderChart(source, root)
+        core.info(`${tree}: ${source.app} ${result.ok ? 'ok' : 'FAIL'} ${source.chart} ${source.revision}`)
         return result
       },
 

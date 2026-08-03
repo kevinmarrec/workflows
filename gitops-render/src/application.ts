@@ -69,20 +69,19 @@ export function chartSources(text: string, file: string): ChartSource[] {
     if (!source) continue
 
     if (source.chart) {
+      const reject = (reason: string) => new UnsupportedSourceError(file, `chart source "${source.chart}" ${reason}`)
+
       const unsupported = Object.keys(source.helm ?? {}).filter(key => !SUPPORTED_HELM_KEYS.includes(key))
 
       if (unsupported.length > 0) {
-        throw new UnsupportedSourceError(file, `chart source "${source.chart}" uses helm.${unsupported[0]}, which this action does not render`)
+        throw reject(`uses helm.${unsupported[0]}, which this action does not render`)
       }
 
-      if (!namespace) {
-        throw new UnsupportedSourceError(file, `chart source "${source.chart}" has no spec.destination.namespace`)
-      }
-
-      // Without it helm would be handed `--repo ""`, and fail far from the cause.
-      if (!source.repoURL) {
-        throw new UnsupportedSourceError(file, `chart source "${source.chart}" has no repoURL`)
-      }
+      // Each of these would otherwise reach helm as `--namespace null`, `--repo ""` or
+      // `--version undefined`, and fail somewhere far from the cause.
+      if (!namespace) throw reject('has no spec.destination.namespace')
+      if (!source.repoURL) throw reject('has no repoURL')
+      if (!source.targetRevision) throw reject('has no targetRevision')
 
       charts.push({
         app,

@@ -1,12 +1,13 @@
 import { type ChartSource, chartSources, UnsupportedSourceError } from './application'
 import { compareManifests } from './compare'
 import type { RenderResult } from './helm'
-import { type AppOutcome, type AppResult, renderSummary } from './summary'
+import { type AppOutcome, type AppResult, countFailed, renderSummary } from './summary'
 
 export interface Deps {
   listApps: (glob: string) => Promise<string[]>
   readApp: (file: string) => Promise<string>
-  render: (source: ChartSource, root: string) => Promise<RenderResult>
+  /** `tree` says which of the two renders this is, so the caller can label it without reading `root`. */
+  render: (source: ChartSource, root: string, tree: 'head' | 'base') => Promise<RenderResult>
   materializeBase: (sha: string) => Promise<string | null>
   cleanupBase: (root: string) => Promise<void>
 }
@@ -25,12 +26,14 @@ interface RunOutput {
   failures: string[]
 }
 
-function outcomeFor(
-  source: ChartSource,
-  head: RenderResult,
-  base: RenderResult | undefined,
-  maxDiffLines: number,
-): AppOutcome {
+/** A chart source and what the two trees made of it. */
+interface Render {
+  source: ChartSource
+  head: RenderResult
+  base?: RenderResult
+}
+
+function outcomeFor({ source, head, base }: Render, maxDiffLines: number): AppOutcome {
   if (!head.ok) return { status: 'failed', stderr: head.stderr }
 
   // A base that is absent, unreadable, or broken is a missing baseline — never a change.
@@ -58,22 +61,22 @@ export async function main(input: RunInput, deps: Deps): Promise<RunOutput> {
   }
 
   const baseRoot = input.baseSha ? await deps.materializeBase(input.baseSha) : null
-  const head = new Map<string, RenderResult>()
-  const base = new Map<string, RenderResult>()
+  const renders: Render[] = []
 
   try {
+    // Every head render is attempted first, so one broken chart cannot hide a second.
     for (const source of sources) {
-      const result = await deps.render(source, '.')
-      head.set(source.app, result)
+      const head = await deps.render(source, '.', 'head')
+      renders.push({ source, head })
 
-      if (!result.ok) {
-        annotations.push({ file: source.file, message: `${source.chart} ${source.revision} failed to render\n${result.stderr}` })
+      if (!head.ok) {
+        annotations.push({ file: source.file, message: `${source.chart} ${source.revision} failed to render\n${head.stderr}` })
       }
     }
 
     if (baseRoot) {
-      for (const source of sources) {
-        if (head.get(source.app)?.ok) base.set(source.app, await deps.render(source, baseRoot))
+      for (const render of renders) {
+        if (render.head.ok) render.base = await deps.render(render.source, baseRoot, 'base')
       }
     }
   }
@@ -81,13 +84,13 @@ export async function main(input: RunInput, deps: Deps): Promise<RunOutput> {
     if (baseRoot) await deps.cleanupBase(baseRoot)
   }
 
-  const results = sources.map(source => ({
-    app: source.app,
-    version: `${source.chart} ${source.revision}`,
-    outcome: outcomeFor(source, head.get(source.app)!, base.get(source.app), input.maxDiffLines),
+  const results = renders.map(render => ({
+    app: render.source.app,
+    version: `${render.source.chart} ${render.source.revision}`,
+    outcome: outcomeFor(render, input.maxDiffLines),
   }))
 
-  const failed = results.filter(result => result.outcome.status === 'failed').length
+  const failed = countFailed(results)
   if (failed > 0) failures.push(`${failed} chart(s) failed to render`)
 
   // No chart sources at all means the extraction broke, not that everything is fine.

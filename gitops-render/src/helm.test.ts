@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
 import type { ChartSource } from './application'
-import { type Exec, renderChart } from './helm'
+import { renderChart } from './helm'
+import { recordingExec } from './test-utils'
 
 const TRAEFIK: ChartSource = {
   app: 'traefik',
@@ -13,22 +14,11 @@ const TRAEFIK: ChartSource = {
   valueFiles: ['.gitops/values/traefik.yaml'],
 }
 
-function recordingExec(result: Partial<Awaited<ReturnType<Exec>>> = {}) {
-  const calls: { command: string, args: string[] }[] = []
-
-  const exec: Exec = async (command, args) => {
-    calls.push({ command, args })
-    return { stdout: '', stderr: '', exitCode: 0, ...result }
-  }
-
-  return { calls, exec }
-}
-
 describe('renderChart', () => {
   it('builds the helm argv from the chart source', async () => {
     const { calls, exec } = recordingExec()
 
-    await renderChart(TRAEFIK, { root: '/tmp/base', exec })
+    await renderChart(TRAEFIK, '/tmp/base', exec)
 
     expect(calls).toEqual([{
       command: 'helm',
@@ -52,7 +42,7 @@ describe('renderChart', () => {
     const { calls, exec } = recordingExec()
     const source = { ...TRAEFIK, valueFiles: ['.gitops/values/common.yaml', '.gitops/values/traefik.yaml'] }
 
-    await renderChart(source, { root: '/tmp/head', exec })
+    await renderChart(source, '/tmp/head', exec)
 
     expect(calls[0].args.slice(-4)).toEqual([
       '-f',
@@ -65,7 +55,7 @@ describe('renderChart', () => {
   it('passes no -f flag when the source has no value files', async () => {
     const { calls, exec } = recordingExec()
 
-    await renderChart({ ...TRAEFIK, valueFiles: [] }, { root: '/tmp/head', exec })
+    await renderChart({ ...TRAEFIK, valueFiles: [] }, '/tmp/head', exec)
 
     expect(calls[0].args).not.toContain('-f')
   })
@@ -73,7 +63,7 @@ describe('renderChart', () => {
   it('returns the rendered manifests when helm succeeds', async () => {
     const { exec } = recordingExec({ stdout: 'kind: Deployment\n', exitCode: 0 })
 
-    await expect(renderChart(TRAEFIK, { root: '/tmp/head', exec }))
+    await expect(renderChart(TRAEFIK, '/tmp/head', exec))
       .resolves
       .toEqual({ ok: true, manifests: 'kind: Deployment\n' })
   })
@@ -81,7 +71,7 @@ describe('renderChart', () => {
   it('returns helm stderr when the chart fails to render', async () => {
     const { exec } = recordingExec({ stderr: 'Error: values don\'t meet the schema', exitCode: 1 })
 
-    await expect(renderChart(TRAEFIK, { root: '/tmp/head', exec }))
+    await expect(renderChart(TRAEFIK, '/tmp/head', exec))
       .resolves
       .toEqual({ ok: false, stderr: 'Error: values don\'t meet the schema' })
   })

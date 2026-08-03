@@ -19,8 +19,7 @@ interface Resource {
 export function resourceKeys(manifests: string): string[] {
   const keys = parseAllDocuments(manifests)
     .map(document => document.toJS() as Resource | null)
-    .filter(resource => resource?.kind && resource.metadata?.name)
-    .map(resource => `${resource!.kind}/${resource!.metadata!.name}`)
+    .flatMap(resource => resource?.kind && resource.metadata?.name ? [`${resource.kind}/${resource.metadata.name}`] : [])
 
   return [...new Set(keys)].sort()
 }

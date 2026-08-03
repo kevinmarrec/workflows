@@ -29,7 +29,7 @@ const SEALED_SECRETS: ChartSource = {
 
 describe('renderChart against a published chart', () => {
   it.runIf(hasHelm)('renders the chart into the requested namespace', async () => {
-    const result = await renderChart(SEALED_SECRETS, { root: '.' })
+    const result = await renderChart(SEALED_SECRETS, '.')
 
     expect(result).toMatchObject({ ok: true })
     if (!result.ok) return
@@ -43,7 +43,7 @@ describe('renderChart against a published chart', () => {
     const values = `gitops-render-values-${process.pid}.yaml`
     await writeFile(join(root, values), 'fullnameOverride: renamed-by-values\n')
 
-    const result = await renderChart({ ...SEALED_SECRETS, valueFiles: [values] }, { root })
+    const result = await renderChart({ ...SEALED_SECRETS, valueFiles: [values] }, root)
 
     expect(result).toMatchObject({ ok: true })
     if (!result.ok) return
@@ -52,7 +52,7 @@ describe('renderChart against a published chart', () => {
   }, 120_000)
 
   it.runIf(hasHelm)('reports a failure for a version that does not exist', async () => {
-    const result = await renderChart({ ...SEALED_SECRETS, revision: '0.0.0-nope' }, { root: '.' })
+    const result = await renderChart({ ...SEALED_SECRETS, revision: '0.0.0-nope' }, '.')
 
     expect(result.ok).toBe(false)
   }, 120_000)

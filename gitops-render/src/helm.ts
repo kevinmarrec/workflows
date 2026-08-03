@@ -1,31 +1,20 @@
 import { join } from 'pathe'
-import { x } from 'tinyexec'
 
 import type { ChartSource } from './application'
-
-export type Exec = (command: string, args: string[]) => Promise<{ stdout: string, stderr: string, exitCode: number | undefined }>
+import { defaultExec, type Exec } from './exec'
 
 export type RenderResult
   = | { ok: true, manifests: string }
     | { ok: false, stderr: string }
 
-interface RenderOptions {
-  /** Root of the tree being rendered. Value files resolve against it, so base renders with base values. */
-  root: string
-  exec?: Exec
-}
-
-const defaultExec: Exec = async (command, args) => x(command, args)
-
 /**
- * Renders one chart source with `helm template`.
+ * Renders one chart source with `helm template`, resolving its value files against `root` — the tree
+ * being rendered, so the base commit renders with the base commit's values.
  *
  * A chart that fails to render is a result, not an exception: the base commit is allowed to fail
  * (it may predate a fix, or reference a repo that has since moved) and must degrade to "no baseline".
  */
-export async function renderChart(source: ChartSource, options: RenderOptions): Promise<RenderResult> {
-  const exec = options.exec ?? defaultExec
-
+export async function renderChart(source: ChartSource, root: string, exec: Exec = defaultExec): Promise<RenderResult> {
   const args = [
     // Argo names the release after the chart; using anything else changes every metadata.name.
     'template',
@@ -37,7 +26,7 @@ export async function renderChart(source: ChartSource, options: RenderOptions): 
     source.revision,
     '--namespace',
     source.namespace,
-    ...source.valueFiles.flatMap(file => ['-f', join(options.root, file)]),
+    ...source.valueFiles.flatMap(file => ['-f', join(root, file)]),
   ]
 
   const { stdout, stderr, exitCode } = await exec('helm', args)

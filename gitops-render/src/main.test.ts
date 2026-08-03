@@ -23,6 +23,24 @@ spec:
 `
 }
 
+/** One Application, two chart legs — Argo allows it, and both share the Application's name. */
+const MULTI_CHART = `
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: monitoring
+spec:
+  sources:
+    - repoURL: https://charts.example.com
+      chart: kube-prometheus-stack
+      targetRevision: 1.0.0
+    - repoURL: https://charts.example.com
+      chart: prometheus-adapter
+      targetRevision: 2.0.0
+  destination:
+    namespace: monitoring
+`
+
 interface Scenario {
   apps?: Record<string, string>
   render?: (source: ChartSource, root: string) => Promise<RenderResult>
@@ -114,6 +132,22 @@ describe('main', () => {
 
     expect(attempted).toEqual(['traefik', 'zot'])
     expect(output.annotations).toHaveLength(2)
+  })
+
+  it('keeps the two chart legs of one Application apart', async () => {
+    const { run } = scenario({
+      apps: { '.gitops/apps/monitoring.yaml': MULTI_CHART },
+      render: async source => source.chart === 'prometheus-adapter'
+        ? { ok: false, stderr: 'Error: chart not found' }
+        : { ok: true, manifests: 'kind: Deployment\n' },
+    })
+
+    const output = await run()
+
+    expect(output.results.map(result => [result.version, result.outcome.status])).toEqual([
+      ['kube-prometheus-stack 1.0.0', 'unchanged'],
+      ['prometheus-adapter 2.0.0', 'failed'],
+    ])
   })
 
   it('fails when the glob matches nothing renderable', async () => {

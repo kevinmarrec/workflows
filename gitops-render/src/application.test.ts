@@ -1,24 +1,34 @@
 import { describe, expect, it } from 'vitest'
+import { stringify } from 'yaml'
 
 import { chartSources, UnsupportedSourceError } from './application'
 
-function chartApp(source: string) {
-  return `
-apiVersion: argoproj.io/v1alpha1
-kind: Application
-metadata:
-  name: traefik
-spec:
-  sources:
-    - repoURL: https://traefik.github.io/charts
-      chart: traefik
-      targetRevision: 41.1.0
-${source}
-  destination:
-    namespace: traefik
-`
+const FILE = '.gitops/apps/traefik.yaml'
+
+/** A well-formed chart source, spread and overridden by the tests that vary one field of it. */
+const CHART = {
+  repoURL: 'https://traefik.github.io/charts',
+  chart: 'traefik',
+  targetRevision: '41.1.0',
 }
 
+const DESTINATION = { namespace: 'traefik' }
+
+/** Builds an Application around `spec`, so each test shows only what it varies. */
+function app(spec: Record<string, unknown>) {
+  return stringify({
+    apiVersion: 'argoproj.io/v1alpha1',
+    kind: 'Application',
+    metadata: { name: 'traefik' },
+    spec,
+  })
+}
+
+/**
+ * These two stay verbatim: their shape — a chart leg beside a `$values` ref and a path, an
+ * AppProject sitting in the same directory — is what the parser exists to handle, and paraphrasing
+ * it into object literals would hide the thing under test.
+ */
 const TRAEFIK = `
 apiVersion: argoproj.io/v1alpha1
 kind: Application
@@ -58,29 +68,11 @@ spec:
       namespace: '*'
 `
 
-const PATH_ONLY = `
-apiVersion: argoproj.io/v1alpha1
-kind: Application
-metadata:
-  name: blueprint
-spec:
-  project: workloads
-  source:
-    repoURL: https://github.com/kevinmarrec/blueprint
-    targetRevision: HEAD
-    path: .gitops/manifests/blueprint
-    directory:
-      recurse: true
-  destination:
-    server: https://kubernetes.default.svc
-    namespace: blueprint
-`
-
 describe('chartSources', () => {
   it('extracts the chart leg of a multi-source Application', () => {
-    expect(chartSources(TRAEFIK, '.gitops/apps/traefik.yaml')).toEqual([{
+    expect(chartSources(TRAEFIK, FILE)).toEqual([{
       app: 'traefik',
-      file: '.gitops/apps/traefik.yaml',
+      file: FILE,
       namespace: 'traefik',
       repo: 'https://traefik.github.io/charts',
       chart: 'traefik',
@@ -94,127 +86,74 @@ describe('chartSources', () => {
   })
 
   it('skips an Application whose only source is a repository path', () => {
-    expect(chartSources(PATH_ONLY, '.gitops/apps/blueprint.yaml')).toEqual([])
+    const manifest = app({
+      source: { repoURL: 'https://github.com/kevinmarrec/blueprint', targetRevision: 'HEAD', path: '.gitops/manifests/blueprint', directory: { recurse: true } },
+      destination: DESTINATION,
+    })
+
+    expect(chartSources(manifest, FILE)).toEqual([])
   })
 
   it('rejects a chart source using helm.valuesObject', () => {
-    const app = chartApp('      helm:\n        valuesObject:\n          replicas: 2')
+    const manifest = app({
+      sources: [{ ...CHART, helm: { valuesObject: { replicas: 2 } } }],
+      destination: DESTINATION,
+    })
 
-    expect(() => chartSources(app, '.gitops/apps/traefik.yaml'))
-      .toThrow(new UnsupportedSourceError('.gitops/apps/traefik.yaml', 'chart source "traefik" uses helm.valuesObject, which this action does not render'))
+    expect(() => chartSources(manifest, FILE))
+      .toThrow(new UnsupportedSourceError(FILE, 'chart source "traefik" uses helm.valuesObject, which this action does not render'))
   })
 
   it('rejects a chart source using helm.parameters', () => {
-    const app = chartApp('      helm:\n        parameters:\n          - name: replicas\n            value: "2"')
+    const manifest = app({
+      sources: [{ ...CHART, helm: { parameters: [{ name: 'replicas', value: '2' }] } }],
+      destination: DESTINATION,
+    })
 
-    expect(() => chartSources(app, '.gitops/apps/traefik.yaml'))
-      .toThrow(UnsupportedSourceError)
+    expect(() => chartSources(manifest, FILE)).toThrow(UnsupportedSourceError)
   })
 
   it('rejects a chart source with no destination namespace', () => {
-    const app = `
-apiVersion: argoproj.io/v1alpha1
-kind: Application
-metadata:
-  name: traefik
-spec:
-  sources:
-    - repoURL: https://traefik.github.io/charts
-      chart: traefik
-      targetRevision: 41.1.0
-  destination:
-    server: https://kubernetes.default.svc
-`
+    const manifest = app({ sources: [CHART], destination: { server: 'https://kubernetes.default.svc' } })
 
-    expect(() => chartSources(app, '.gitops/apps/traefik.yaml'))
-      .toThrow(UnsupportedSourceError)
+    expect(() => chartSources(manifest, FILE)).toThrow(UnsupportedSourceError)
   })
 
   it('rejects a chart source with no repoURL', () => {
-    const app = `
-apiVersion: argoproj.io/v1alpha1
-kind: Application
-metadata:
-  name: traefik
-spec:
-  sources:
-    - chart: traefik
-      targetRevision: 41.1.0
-  destination:
-    namespace: traefik
-`
+    const manifest = app({ sources: [{ ...CHART, repoURL: undefined }], destination: DESTINATION })
 
-    expect(() => chartSources(app, '.gitops/apps/traefik.yaml'))
-      .toThrow(UnsupportedSourceError)
+    expect(() => chartSources(manifest, FILE)).toThrow(UnsupportedSourceError)
+  })
+
+  it('rejects a chart source with no targetRevision', () => {
+    const manifest = app({ sources: [{ ...CHART, targetRevision: undefined }], destination: DESTINATION })
+
+    expect(() => chartSources(manifest, FILE)).toThrow(UnsupportedSourceError)
   })
 
   it('renders a chart source that declares no helm block', () => {
-    const app = `
-apiVersion: argoproj.io/v1alpha1
-kind: Application
-metadata:
-  name: traefik
-spec:
-  sources:
-    - repoURL: https://traefik.github.io/charts
-      chart: traefik
-      targetRevision: 41.1.0
-  destination:
-    namespace: traefik
-`
+    const manifest = app({ sources: [CHART], destination: DESTINATION })
 
-    expect(chartSources(app, '.gitops/apps/traefik.yaml')[0].valueFiles).toEqual([])
+    expect(chartSources(manifest, FILE)[0].valueFiles).toEqual([])
   })
 
   it('skips an Application that declares no source at all', () => {
-    const app = `
-apiVersion: argoproj.io/v1alpha1
-kind: Application
-metadata:
-  name: traefik
-spec:
-  destination:
-    namespace: traefik
-`
-
-    expect(chartSources(app, '.gitops/apps/traefik.yaml')).toEqual([])
+    expect(chartSources(app({ destination: DESTINATION }), FILE)).toEqual([])
   })
 
   it('names an unrecognised source even when it has no repoURL', () => {
-    const app = `
-apiVersion: argoproj.io/v1alpha1
-kind: Application
-metadata:
-  name: traefik
-spec:
-  sources:
-    - plugin:
-        name: kustomize-build
-  destination:
-    namespace: traefik
-`
+    const manifest = app({ sources: [{ plugin: { name: 'kustomize-build' } }], destination: DESTINATION })
 
-    expect(() => chartSources(app, '.gitops/apps/traefik.yaml'))
+    expect(() => chartSources(manifest, FILE))
       .toThrow('source (no repoURL) is neither a chart, a repository path, nor a values ref')
   })
 
   it('rejects a source that is neither a chart, a path, nor a values ref', () => {
-    const app = `
-apiVersion: argoproj.io/v1alpha1
-kind: Application
-metadata:
-  name: traefik
-spec:
-  sources:
-    - repoURL: https://github.com/kevinmarrec/blueprint
-      targetRevision: HEAD
-      plugin:
-        name: kustomize-build
-  destination:
-    namespace: traefik
-`
+    const manifest = app({
+      sources: [{ repoURL: 'https://github.com/kevinmarrec/blueprint', targetRevision: 'HEAD', plugin: { name: 'kustomize-build' } }],
+      destination: DESTINATION,
+    })
 
-    expect(() => chartSources(app, '.gitops/apps/traefik.yaml'))
-      .toThrow(UnsupportedSourceError)
+    expect(() => chartSources(manifest, FILE)).toThrow(UnsupportedSourceError)
   })
 })
