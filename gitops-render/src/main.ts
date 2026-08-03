@@ -4,8 +4,9 @@ import type { RenderResult } from './helm'
 import { type AppOutcome, type AppResult, countFailed, renderSummary } from './summary'
 
 export interface Deps {
-  listApps: (glob: string) => Promise<string[]>
-  readApp: (file: string) => Promise<string>
+  /** Both trees are listed and read the same way, so the base is parsed from its own manifests. */
+  listApps: (glob: string, root: string) => Promise<string[]>
+  readApp: (root: string, file: string) => Promise<string>
   /** `tree` says which of the two renders this is, so the caller can label it without reading `root`. */
   render: (source: ChartSource, root: string, tree: 'head' | 'base') => Promise<RenderResult>
   materializeBase: (sha: string) => Promise<string | null>
@@ -26,11 +27,21 @@ interface RunOutput {
   failures: string[]
 }
 
-/** A chart source and what the two trees made of it. */
+/** A chart source, its counterpart in the base tree, and what each tree made of it. */
 interface Render {
   source: ChartSource
+  baseSource?: ChartSource
   head: RenderResult
   base?: RenderResult
+}
+
+/**
+ * Pairs a chart across the two trees. The Application's name alone would collide between the
+ * chart legs of a multi-source Application, and the chart's name alone would collide between two
+ * Applications deploying the same chart.
+ */
+function sourceKey(source: ChartSource): string {
+  return `${source.app}/${source.chart}`
 }
 
 function outcomeFor({ source, head, base }: Render, maxDiffLines: number): AppOutcome {
@@ -43,31 +54,60 @@ function outcomeFor({ source, head, base }: Render, maxDiffLines: number): AppOu
   return compareManifests(source.app, base.manifests, head.manifests, maxDiffLines)
 }
 
-export async function main(input: RunInput, deps: Deps): Promise<RunOutput> {
-  const annotations: RunOutput['annotations'] = []
-  const failures: string[] = []
-  const sources: ChartSource[] = []
+/** `argo-cd 9.5.17 → 10.2.2` when the pin moved, so the summary names the bump under review. */
+function versionLabel({ source, baseSource }: Render): string {
+  const bumpedFrom = baseSource && baseSource.revision !== source.revision ? `${baseSource.revision} → ` : ''
 
-  for (const file of await deps.listApps(input.apps)) {
+  return `${source.chart} ${bumpedFrom}${source.revision}`
+}
+
+/**
+ * Extracts the chart sources of one tree, collecting the guard failures rather than throwing on
+ * the first, so every unsupported Application is reported in one run.
+ */
+async function collectSources(root: string, input: RunInput, deps: Deps) {
+  const sources: ChartSource[] = []
+  const errors: UnsupportedSourceError[] = []
+
+  for (const file of await deps.listApps(input.apps, root)) {
     try {
-      sources.push(...chartSources(await deps.readApp(file), file))
+      sources.push(...chartSources(await deps.readApp(root, file), file))
     }
     catch (error) {
       if (!(error instanceof UnsupportedSourceError)) throw error
 
-      annotations.push({ file: error.file, message: error.message })
-      failures.push(`${error.file}: ${error.message}`)
+      errors.push(error)
     }
+  }
+
+  return { sources, errors }
+}
+
+export async function main(input: RunInput, deps: Deps): Promise<RunOutput> {
+  const annotations: RunOutput['annotations'] = []
+  const failures: string[] = []
+
+  const { sources, errors } = await collectSources('.', input, deps)
+
+  for (const error of errors) {
+    annotations.push({ file: error.file, message: error.message })
+    failures.push(`${error.file}: ${error.message}`)
   }
 
   const baseRoot = input.baseSha ? await deps.materializeBase(input.baseSha) : null
   const renders: Render[] = []
 
   try {
+    // The base tree is parsed from its own manifests, so a chart bump renders the version each
+    // commit actually pinned. Its guard failures are discarded: the base may predate a guard, or
+    // use a feature this very commit removes, and neither is this commit's problem.
+    const baseSources = baseRoot ? (await collectSources(baseRoot, input, deps)).sources : []
+    const baseByKey = new Map(baseSources.map(source => [sourceKey(source), source]))
+
     // Every head render is attempted first, so one broken chart cannot hide a second.
     for (const source of sources) {
       const head = await deps.render(source, '.', 'head')
-      renders.push({ source, head })
+      renders.push({ source, baseSource: baseByKey.get(sourceKey(source)), head })
 
       if (!head.ok) {
         annotations.push({ file: source.file, message: `${source.chart} ${source.revision} failed to render\n${head.stderr}` })
@@ -76,7 +116,10 @@ export async function main(input: RunInput, deps: Deps): Promise<RunOutput> {
 
     if (baseRoot) {
       for (const render of renders) {
-        if (render.head.ok) render.base = await deps.render(render.source, baseRoot, 'base')
+        // A chart the base tree never declared is new, and has no baseline rather than a diff.
+        if (render.head.ok && render.baseSource) {
+          render.base = await deps.render(render.baseSource, baseRoot, 'base')
+        }
       }
     }
   }
@@ -86,7 +129,7 @@ export async function main(input: RunInput, deps: Deps): Promise<RunOutput> {
 
   const results = renders.map(render => ({
     app: render.source.app,
-    version: `${render.source.chart} ${render.source.revision}`,
+    version: versionLabel(render),
     outcome: outcomeFor(render, input.maxDiffLines),
   }))
 

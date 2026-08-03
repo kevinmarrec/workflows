@@ -4,7 +4,7 @@ import type { ChartSource } from './application'
 import type { RenderResult } from './helm'
 import { type Deps, main, type RunInput } from './main'
 
-function application(name: string, chart = name) {
+function application(name: string, chart = name, revision = '1.0.0') {
   return `
 apiVersion: argoproj.io/v1alpha1
 kind: Application
@@ -14,7 +14,7 @@ spec:
   sources:
     - repoURL: https://charts.example.com
       chart: ${chart}
-      targetRevision: 1.0.0
+      targetRevision: ${revision}
       helm:
         valueFiles:
           - $values/.gitops/values/${name}.yaml
@@ -43,19 +43,31 @@ spec:
 
 interface Scenario {
   apps?: Record<string, string>
+  /** The base tree's Applications. Defaults to the same manifests as the head tree. */
+  baseApps?: Record<string, string>
   render?: (source: ChartSource, root: string) => Promise<RenderResult>
   materializeBase?: (sha: string) => Promise<string | null>
   input?: Partial<RunInput>
 }
 
-function scenario({ apps, render, materializeBase, input }: Scenario = {}) {
+/** Renders manifests that carry the chart and revision, so a diff proves which pin was used. */
+async function echoRender(source: ChartSource): Promise<RenderResult> {
+  return {
+    ok: true,
+    manifests: `kind: Deployment\nmetadata:\n  name: ${source.chart}\n  labels:\n    version: ${source.revision}\n`,
+  }
+}
+
+function scenario({ apps, baseApps, render, materializeBase, input }: Scenario = {}) {
   const files = apps ?? { '.gitops/apps/traefik.yaml': application('traefik') }
+  const baseFiles = baseApps ?? files
 
   const cleanupBase = vi.fn(async () => {})
+  const treeOf = (root: string) => root === '.' ? files : baseFiles
 
   const deps: Deps = {
-    listApps: async () => Object.keys(files),
-    readApp: async file => files[file],
+    listApps: async (_glob, root) => Object.keys(treeOf(root)),
+    readApp: async (root, file) => treeOf(root)[file],
     render: render ?? (async () => ({ ok: true, manifests: 'kind: Deployment\nmetadata:\n  name: x\n' })),
     materializeBase: materializeBase ?? (async () => '/tmp/base'),
     cleanupBase,
@@ -148,6 +160,73 @@ describe('main', () => {
       ['kube-prometheus-stack 1.0.0', 'unchanged'],
       ['prometheus-adapter 2.0.0', 'failed'],
     ])
+  })
+
+  it('renders the base tree with the chart version the base tree pinned', async () => {
+    const { run } = scenario({
+      apps: { '.gitops/apps/argocd.yaml': application('argocd', 'argo-cd', '10.2.2') },
+      baseApps: { '.gitops/apps/argocd.yaml': application('argocd', 'argo-cd', '9.5.17') },
+      render: echoRender,
+    })
+
+    const output = await run()
+
+    expect(output.hasChanges).toBe(true)
+    expect(output.results[0].outcome.status).toBe('changed')
+  })
+
+  it('shows the bump in the version label when the pin moved', async () => {
+    const { run } = scenario({
+      apps: { '.gitops/apps/argocd.yaml': application('argocd', 'argo-cd', '10.2.2') },
+      baseApps: { '.gitops/apps/argocd.yaml': application('argocd', 'argo-cd', '9.5.17') },
+      render: echoRender,
+    })
+
+    expect((await run()).results[0].version).toBe('argo-cd 9.5.17 → 10.2.2')
+  })
+
+  it('has no baseline for a chart the base tree did not declare', async () => {
+    const { run } = scenario({
+      apps: { '.gitops/apps/zot.yaml': application('zot') },
+      baseApps: {},
+    })
+
+    const output = await run()
+
+    expect(output.failures).toEqual([])
+    expect(output.results[0].outcome).toEqual({ status: 'no-baseline', reason: 'missing' })
+  })
+
+  it('ignores an Application the base tree declares and this one does not', async () => {
+    const { run } = scenario({
+      apps: { '.gitops/apps/zot.yaml': application('zot') },
+      baseApps: {
+        '.gitops/apps/zot.yaml': application('zot'),
+        '.gitops/apps/gone.yaml': application('gone'),
+      },
+    })
+
+    const output = await run()
+
+    expect(output.results.map(result => result.app)).toEqual(['zot'])
+  })
+
+  it('does not fail the job for an unsupported feature in the base tree only', async () => {
+    const { run } = scenario({
+      apps: { '.gitops/apps/zot.yaml': application('zot') },
+      baseApps: {
+        '.gitops/apps/zot.yaml': application('zot').replace(
+          'valueFiles:\n          - $values/.gitops/values/zot.yaml',
+          'valuesObject:\n          replicas: 2',
+        ),
+      },
+    })
+
+    const output = await run()
+
+    expect(output.failures).toEqual([])
+    expect(output.annotations).toEqual([])
+    expect(output.results[0].outcome).toEqual({ status: 'no-baseline', reason: 'missing' })
   })
 
   it('fails when the glob matches nothing renderable', async () => {

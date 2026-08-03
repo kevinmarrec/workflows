@@ -9,9 +9,11 @@ It exists for repositories that hold Argo CD configuration but have no cluster i
 1. **Reads every Application** matched by the `apps` glob, and extracts its chart sources
 2. **Rejects Applications** using Argo CD features it does not implement, rather than rendering them wrong
 3. **Renders each chart** with `helm template`, using the value files the Application actually deploys with
-4. **Renders the same charts at the base commit**, in a detached worktree, so the base uses the base's values
+4. **Renders the base commit's own Applications**, in a detached worktree, so each side uses the chart version *and* the values that commit pinned
 5. **Compares the two renders**, reporting resources the chart started or stopped emitting
 6. **Writes the result to the job summary**, with each render diff behind a details block
+
+Step 4 is why a chart bump is visible. Rendering the base with this commit's pin would make both sides identical and report "unchanged" — and a bumped chart flipping a default on is exactly the change a render alone cannot see, since it renders perfectly green.
 
 ## Requirements
 
@@ -43,8 +45,11 @@ The job fails only when something genuinely cannot render:
 | An Application uses an unsupported feature       | ❌                           |
 | The glob matched no chart sources at all         | ❌                           |
 | The **base** commit fails to render              | ✅ reported as "no baseline" |
+| The **base** commit uses an unsupported feature  | ✅ reported as "no baseline" |
 
 Every chart is attempted before the job fails, so one broken chart cannot hide a second.
+
+The base commit is always best-effort. It may predate a guard, or use a feature the very commit under review removes, so nothing about it can fail the job — a chart the base could not produce simply has no baseline. A chart the base never declared at all reads as new, and an Application only the base declared is ignored.
 
 ## Supported sources
 

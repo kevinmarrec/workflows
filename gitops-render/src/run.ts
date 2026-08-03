@@ -21,8 +21,10 @@ export async function run(): Promise<void> {
       baseSha: core.getInput('base-sha') || undefined,
       maxDiffLines: Number(core.getInput('max-diff-lines')),
     }, {
-      listApps: async pattern => (await glob([pattern])).sort(),
-      readApp: file => readFile(file, 'utf8'),
+      // Paths stay relative to the tree they came from, so an annotation points at the
+      // repository file rather than into the base worktree under /tmp.
+      listApps: async (pattern, root) => (await glob([pattern], { cwd: root })).sort(),
+      readApp: (root, file) => readFile(join(root, file), 'utf8'),
 
       render: async (source, root, tree) => {
         const result = await renderChart(source, root)
