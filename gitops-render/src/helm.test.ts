@@ -32,10 +32,19 @@ describe('renderChart', () => {
         '41.1.0',
         '--namespace',
         'traefik',
+        '--include-crds',
         '-f',
         '/tmp/base/.gitops/values/traefik.yaml',
       ],
     }])
+  })
+
+  it('includes the crds/ directory, because Argo CD applies it unless skipCrds is set', async () => {
+    const { calls, exec } = recordingExec()
+
+    await renderChart(TRAEFIK, '/tmp/head', exec)
+
+    expect(calls[0].args).toContain('--include-crds')
   })
 
   it('resolves every value file against the tree being rendered', async () => {

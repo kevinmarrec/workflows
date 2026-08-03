@@ -26,6 +26,10 @@ export async function renderChart(source: ChartSource, root: string, exec: Exec 
     source.revision,
     '--namespace',
     source.namespace,
+    // Argo CD applies the chart's crds/ directory unless the source sets skipCrds, and helm
+    // template omits it unless asked. Without this, traefik renders 7 of the 32 objects Argo
+    // deploys, and a bump that touches a CRD is invisible.
+    '--include-crds',
     ...source.valueFiles.flatMap(file => ['-f', join(root, file)]),
   ]
 
