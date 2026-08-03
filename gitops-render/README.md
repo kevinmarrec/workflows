@@ -9,7 +9,7 @@ It exists for repositories that hold Argo CD configuration but have no cluster i
 1. **Reads every Application** matched by the `apps` glob, and extracts its chart sources
 2. **Rejects Applications** using Argo CD features it does not implement, rather than rendering them wrong
 3. **Renders each chart** with `helm template`, using the value files the Application actually deploys with
-4. **Renders the base commit's own Applications**, in a detached worktree, so each side uses the chart version *and* the values that commit pinned
+4. **Renders the base commit's own Applications**, in a detached worktree, so each side uses the chart version _and_ the values that commit pinned
 5. **Compares the two renders**, reporting resources the chart started or stopped emitting
 6. **Writes the result to the job summary**, with each render diff behind a details block
 
