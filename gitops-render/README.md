@@ -59,7 +59,9 @@ Within a `spec.source` or `spec.sources` entry:
 
 `helm.valuesObject`, `helm.parameters`, and Kustomize or plugin sources are deliberately **not** implemented. Rendering them as though they were absent would produce output that silently differs from what Argo CD deploys, so the action refuses instead. Manifests that are not `kind: Application` — `AppProject`, for instance — are skipped.
 
-A chart source missing `repoURL` or `spec.destination.namespace` also fails, rather than reaching helm as `--repo ""` or `--namespace null` and failing somewhere further from the cause.
+A chart source missing `repoURL`, `targetRevision` or `spec.destination.namespace` also fails, rather than reaching helm as `--repo ""`, `--version undefined` or `--namespace null` and failing somewhere further from the cause.
+
+An Application may declare several chart legs in `spec.sources`. Each is rendered, diffed and reported on its own row.
 
 ## Inputs
 
