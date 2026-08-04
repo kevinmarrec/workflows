@@ -20,7 +20,7 @@ Step 4 is why a chart bump is visible. Rendering the base with this commit's pin
 `helm` must be on `PATH` — this action does not install it. The base render needs full history.
 
 ```yaml
-- uses: actions/checkout@v5
+- uses: actions/checkout@v7
   with:
     fetch-depth: 0
 
