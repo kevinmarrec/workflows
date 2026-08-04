@@ -1,5 +1,5 @@
 name: File size Diff Analysis
-description: Analyze file size differences between the current branch and main branch, and comment on PRs with changes
+description: Analyze file size differences against the baseline branch, and comment on PRs with changes
 
 inputs:
   directories:
@@ -12,9 +12,9 @@ inputs:
     default: .github/cache/build-stats
 
   cache-key:
-    description: Cache key to use for restore/save
+    description: Cache key prefix. The baseline branch and commit are appended to it, so do not name a branch here.
     required: false
-    default: build-stats-main
+    default: build-stats
 
   comment-on-pr:
     description: Whether to comment on PRs with file size changes
@@ -28,7 +28,7 @@ inputs:
 
 outputs:
   has-changes:
-    description: Whether any file size changes were detected compared to main branch
+    description: Whether any file size changes were detected against the baseline (true also when no baseline was found)
 
 runs:
   using: node24

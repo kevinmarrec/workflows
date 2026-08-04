@@ -77,6 +77,7 @@ describe('main function integration', () => {
     vi.mocked(cache.restoreCache).mockResolvedValue(undefined)
     vi.mocked(cache.saveCache).mockResolvedValue(0)
     Object.assign(github.context, {
+      payload: { repository: { default_branch: 'main' } },
       ref: 'refs/heads/main',
       eventName: 'push',
       sha: 'abc123',
@@ -86,7 +87,7 @@ describe('main function integration', () => {
     const { run } = await import('./index')
     await run()
 
-    expect(core.info).toHaveBeenCalledWith('Skipping cache restore on main branch (no comparison needed)')
+    expect(core.info).toHaveBeenCalledWith('Publishing the baseline for main, so there is nothing to restore')
     expect(cache.saveCache).toHaveBeenCalled()
   })
 
@@ -105,7 +106,11 @@ describe('main function integration', () => {
     vi.mocked(core.info).mockImplementation(() => {})
     vi.mocked(cache.restoreCache).mockResolvedValue('cache-hit')
     Object.assign(github.context, {
-      ref: 'refs/heads/feature',
+      payload: {
+        repository: { default_branch: 'main' },
+        pull_request: { base: { ref: 'main' } },
+      },
+      ref: 'refs/pull/7/merge',
       eventName: 'pull_request',
       sha: 'abc123',
       repo: { owner: 'owner', repo: 'repo' },
@@ -146,6 +151,7 @@ describe('main function integration', () => {
     vi.mocked(cache.restoreCache).mockResolvedValue(undefined)
     vi.mocked(github.getOctokit).mockReturnValue(mockOctokit as any)
     Object.assign(github.context, {
+      payload: { repository: { default_branch: 'main' } },
       ref: 'refs/heads/feature',
       eventName: 'pull_request',
       issue: { number: 123 },
@@ -176,6 +182,7 @@ describe('main function integration', () => {
     vi.mocked(cache.restoreCache).mockResolvedValue(undefined)
     vi.mocked(cache.saveCache).mockRejectedValue(new Error('Cache save failed'))
     Object.assign(github.context, {
+      payload: { repository: { default_branch: 'main' } },
       ref: 'refs/heads/main',
       eventName: 'push',
       sha: 'abc123',
@@ -237,6 +244,7 @@ describe('main function integration', () => {
     vi.mocked(cache.restoreCache).mockResolvedValue(undefined)
     vi.mocked(cache.saveCache).mockResolvedValue(0)
     Object.assign(github.context, {
+      payload: { repository: { default_branch: 'main' } },
       ref: 'refs/heads/feature',
       eventName: 'pull_request',
       sha: 'abc123',
@@ -271,6 +279,7 @@ describe('main function integration', () => {
     const infoSpy = vi.mocked(core.info).mockImplementation(() => {})
     vi.mocked(cache.restoreCache).mockResolvedValue('cache-hit')
     Object.assign(github.context, {
+      payload: { repository: { default_branch: 'main' } },
       ref: 'refs/heads/feature',
       eventName: 'pull_request',
       sha: 'abc123',
@@ -307,6 +316,7 @@ describe('main function integration', () => {
       vi.mocked(core.info).mockImplementation(() => {})
       vi.mocked(cache.restoreCache).mockResolvedValue(undefined)
       Object.assign(github.context, {
+        payload: { repository: { default_branch: 'main' } },
         ref: 'refs/heads/feature',
         eventName: 'pull_request',
         sha: 'abc123',

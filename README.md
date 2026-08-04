@@ -38,7 +38,7 @@ Each action has its own README with full inputs and outputs.
 | Action                             | Type      | Purpose                                                                       |
 | ---------------------------------- | --------- | ----------------------------------------------------------------------------- |
 | [`setup-bun`](./setup-bun)         | composite | Set up Bun and Node.js, and install dependencies                              |
-| [`filesize-diff`](./filesize-diff) | Node 24   | Compare file sizes against `main` and comment the difference on the PR        |
+| [`filesize-diff`](./filesize-diff) | Node 24   | Compare file sizes against the baseline branch and comment the difference     |
 | [`gitops-render`](./gitops-render) | Node 24   | Render the Helm charts of Argo CD `Application`s and diff them against a base |
 
 ```yaml

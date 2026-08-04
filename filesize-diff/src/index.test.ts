@@ -9,6 +9,7 @@ import { saveStats } from './cache'
 import {
   analyzeDirectory,
   ASSET_FOLDERS,
+  baselineNote,
   type FileStat,
   formatDiff,
   formatTotalRow,
@@ -87,6 +88,35 @@ describe('formatTotalRow', () => {
     expect(formatTotalRow('Total', 1000, 1000, true)).toContain('➖')
     expect(formatTotalRow('Total', 2000, 1000, true)).toContain('🔺')
     expect(formatTotalRow('Total', 500, 1000, true)).toContain('✅')
+  })
+})
+
+describe('baselineNote', () => {
+  it('adds nothing when the comparison is real', () => {
+    expect(baselineNote({ status: 'restored', key: 'build-stats-main-abc123' })).toBe('')
+  })
+
+  it('says which branch has no baseline, so the table is not read as a diff', () => {
+    const note = baselineNote({ status: 'missing', branch: 'main' })
+
+    expect(note).toContain('No baseline for `main`')
+    expect(note).toContain('without a comparison')
+  })
+
+  it('mentions eviction, since that is the reason a baseline goes missing on a live branch', () => {
+    expect(baselineNote({ status: 'missing', branch: 'main' })).toMatch(/7 days/)
+  })
+
+  it('reports the branch being undeterminable as its own case', () => {
+    const note = baselineNote({ status: 'missing' })
+
+    expect(note).toContain('could not be determined')
+    expect(note).not.toContain('undefined')
+  })
+
+  it('explains that the baseline branch has nothing to compare against', () => {
+    expect(baselineNote({ status: 'publishing', branch: 'master' }))
+      .toContain('Publishing the baseline for `master`')
   })
 })
 
