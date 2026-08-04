@@ -11,6 +11,17 @@ export interface AppResult {
   outcome: AppOutcome
 }
 
+/**
+ * Puts a block inside its list item. A fence or a `<details>` left at column 0 closes the list,
+ * renders on its own, and makes the next chart open a second list — so the diff of one chart
+ * appears to sit between two others rather than under the one it belongs to.
+ *
+ * Blank lines stay empty: trailing spaces would be indentation with nothing to indent.
+ */
+function inListItem(lines: string[]): string[] {
+  return lines.map(line => line ? `  ${line}` : line)
+}
+
 function renderOutcome({ app, version, outcome }: AppResult): string[] {
   const heading = `- **${app}** (${version})`
 
@@ -24,7 +35,12 @@ function renderOutcome({ app, version, outcome }: AppResult): string[] {
         : [`${heading} — new, or no base to compare against`]
 
     case 'failed':
-      return [`${heading} — **failed to render**`, '', '```', outcome.stderr, '```', '']
+      return [
+        `${heading} — **failed to render**`,
+        '',
+        ...inListItem(['```', ...outcome.stderr.split('\n'), '```']),
+        '',
+      ]
 
     case 'changed':
       return [
@@ -32,13 +48,16 @@ function renderOutcome({ app, version, outcome }: AppResult): string[] {
         ...outcome.added.map(key => `  - added: \`${key}\``),
         ...outcome.removed.map(key => `  - removed: \`${key}\``),
         '',
-        `<details><summary>${app} render diff</summary>`,
-        '',
-        '```diff',
-        outcome.patch,
-        '```',
-        '',
-        '</details>',
+        // The chart is already named on the line above, so the summary does not repeat it.
+        ...inListItem([
+          '<details><summary>render diff</summary>',
+          '',
+          '```diff',
+          ...outcome.patch.split('\n'),
+          '```',
+          '',
+          '</details>',
+        ]),
         '',
       ]
   }
