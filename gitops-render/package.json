@@ -1,0 +1,18 @@
+{
+  "name": "gitops-render-action",
+  "type": "module",
+  "private": true,
+  "description": "GitHub Action that renders Argo CD Application Helm charts and diffs them against a base commit",
+  "main": "dist/run.js",
+  "scripts": {
+    "build": "bun build src/run.ts --outdir dist --target node --minify --sourcemap"
+  },
+  "dependencies": {
+    "@actions/core": "^3.0.1",
+    "diff": "^9.0.0",
+    "pathe": "^2.0.3",
+    "tinyexec": "^1.3.0",
+    "tinyglobby": "^0.2.17",
+    "yaml": "^2.9.0"
+  }
+}

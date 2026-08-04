@@ -4,7 +4,8 @@
   "packageManager": "bun@1.3.11",
   "license": "MIT",
   "workspaces": [
-    "filesize-diff"
+    "filesize-diff",
+    "gitops-render"
   ],
   "scripts": {
     "check": "bun run lint && bun run knip && bun run typecheck",
