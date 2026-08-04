@@ -6,7 +6,7 @@ import { filesize } from 'filesize'
 import { join } from 'pathe'
 import { glob } from 'tinyglobby'
 
-import { loadCachedStats, restoreCache, saveCache, saveStats } from './cache'
+import { type Baseline, loadCachedStats, restoreCache, saveCache, saveStats } from './cache'
 import { commentOnPR } from './comment'
 
 const VITE_HASH_REGEX = /-[\w-]{8,10}(\.[a-z]+)$/i
@@ -123,6 +123,24 @@ export function generateTotalTable(
   return [header, ...totalRows].join('\n')
 }
 
+/**
+ * States the baseline situation above the table, because a run with nothing to compare against
+ * produces a sizes-only table that otherwise looks exactly like a diff showing no change.
+ */
+export function baselineNote(baseline: Baseline): string {
+  if (baseline.status === 'restored') return ''
+
+  if (baseline.status === 'publishing') {
+    return `> Publishing the baseline for \`${baseline.branch}\`, so there is nothing to compare against.\n\n`
+  }
+
+  if (!baseline.branch) {
+    return '> **No baseline**: the branch to compare against could not be determined from the event. Sizes are listed without a comparison.\n\n'
+  }
+
+  return `> **No baseline for \`${baseline.branch}\`**: sizes are listed without a comparison. A baseline is published by every run on \`${baseline.branch}\`, and GitHub evicts caches left unused for 7 days.\n\n`
+}
+
 export function generateDiffTable(
   current: FileStat[],
   cached: FileStat[] | null,
@@ -190,7 +208,8 @@ export async function run(): Promise<void> {
   try {
     const directoriesInput = core.getInput('directories', { required: true })
     const cachePathBase = core.getInput('cache-path') || '.github/cache/build-stats'
-    const cacheKey = core.getInput('cache-key') || 'build-stats-main'
+    // The baseline branch is appended to this, so the key must not name a branch itself.
+    const cacheKey = core.getInput('cache-key') || 'build-stats'
     const prComment = core.getBooleanInput('comment-on-pr', { required: false }) ?? true
 
     const directories = directoriesInput.split(',').map(d => d.trim()).filter(Boolean)
@@ -199,7 +218,7 @@ export async function run(): Promise<void> {
       return core.setFailed('At least one directory must be provided')
     }
 
-    await restoreCache(cachePathBase, cacheKey)
+    const baseline = await restoreCache(cachePathBase, cacheKey)
 
     const results = await Promise.all(
       directories.map(async (directory) => {
@@ -240,7 +259,7 @@ ${tableRows.join('\n')}
 
     // Generate summary table with totals
     const totalTable = generateTotalTable(totalRows)
-    const fullSummary = `# 📋 File size Summary\n\n${totalTable}\n\n${detailsSections.join('\n\n')}`
+    const fullSummary = `# 📋 File size Summary\n\n${baselineNote(baseline)}${totalTable}\n\n${detailsSections.join('\n\n')}`
 
     // Write to step summary
     core.summary.addRaw(fullSummary)
