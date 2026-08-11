@@ -42,8 +42,22 @@ jobs:
         run: npm install -g npm@latest
         if: ${{ inputs.publish }}
 
+      - name: Resolve npm tag
+        id: npm-tag
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          case "$version" in
+            *-alpha*) tag=alpha ;;
+            *-beta*) tag=beta ;;
+            *-rc*) tag=next ;;
+            *-*) echo "::error::Unrecognized prerelease identifier in $version" && exit 1 ;;
+            *) tag=latest ;;
+          esac
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+        if: ${{ inputs.publish }}
+
       - name: Publish
-        run: npm publish --access public --tag ${{ contains(github.ref_name, 'beta') && 'beta' || 'latest' }}
+        run: npm publish --access public --tag ${{ steps.npm-tag.outputs.tag }}
         if: ${{ inputs.publish }}
 
       - name: Create release notes
