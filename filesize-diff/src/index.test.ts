@@ -119,6 +119,15 @@ describe('formatTotalRow', () => {
     expect(formatTotalRow('Total', 2000, 1000, true)).toContain('🔺')
     expect(formatTotalRow('Total', 500, 1000, true)).toContain('✅')
   })
+
+  it('carries the same percentage the rows it sums do', () => {
+    expect(formatTotalRow('Total', 2000, 1000, true)).toContain('(+100.00%)')
+    expect(formatTotalRow('Total', 500, 1000, true)).toContain('(-50.00%)')
+  })
+
+  it('states the size alone when there is no baseline to compare against', () => {
+    expect(formatTotalRow('app/dist', 1000, 0, false)).toBe('| **app/dist** | **1 kB** |')
+  })
 })
 
 describe('baselineNote', () => {

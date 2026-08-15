@@ -104,14 +104,9 @@ export function formatTotalRow(
     return `| **${label}** | **${filesize(totalCurrent)}** |`
   }
 
-  const totalDiff = totalCurrent - totalCached
-  const diffDisplay = totalDiff === 0
-    ? '➖'
-    : totalDiff > 0
-      ? `+${filesize(totalDiff)} 🔺`
-      : `${filesize(totalDiff)} ✅`
-
-  return `| **${label}** | **${filesize(totalCached)}** | **${filesize(totalCurrent)}** | ${diffDisplay} |`
+  // Same delta as every other row: a total that reads differently from the rows it sums invites
+  // the reader to work out why, and there is no why.
+  return `| **${label}** | **${filesize(totalCached)}** | **${filesize(totalCurrent)}** | ${formatDiff(totalCurrent, totalCached)} |`
 }
 
 export function generateTotalTable(
