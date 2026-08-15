@@ -10,30 +10,19 @@ import {
   analyzeDirectory,
   ASSET_FOLDERS,
   baselineNote,
+  buildRows,
+  fileGroup,
   type FileStat,
   formatDiff,
   formatTotalRow,
-  generateDiffTable,
+  generateSection,
   generateTotalTable,
-  getFilePriority,
   getFileStats,
+  groupRows,
   normalizeAssetFilename,
-  sortFiles,
 } from './index'
 
 vi.mock('@actions/core')
-
-describe('getFilePriority', () => {
-  it('should return 0 for regular files', () => {
-    expect(getFilePriority('index.html')).toBe(0)
-  })
-
-  it('should add priority for assets prefix and js extension', () => {
-    expect(getFilePriority('assets/image.png')).toBe(2)
-    expect(getFilePriority('script.js')).toBe(1)
-    expect(getFilePriority('assets/bundle.js')).toBe(3)
-  })
-})
 
 describe('normalizeAssetFilename', () => {
   it.each(ASSET_FOLDERS)('should normalize Vite hashed filenames in %s folder', (folder) => {
@@ -42,6 +31,15 @@ describe('normalizeAssetFilename', () => {
     expect(normalizeAssetFilename(`${folder}/file-abc_defg.js`)).toBe(`${folder}/file.js`) // 8 chars with underscores
     expect(normalizeAssetFilename(`${folder}/bundle-AbC-dEfGh.js`)).toBe(`${folder}/bundle.js`) // 9 chars
     expect(normalizeAssetFilename(`${folder}/script-12-34_567.js`)).toBe(`${folder}/script.js`) // 10 chars
+  })
+
+  // Vike separates the hash with a dot, Vite with a dash. Missing the dotted form left every entry
+  // reading as deleted-and-recreated on any rebuild that changed its hash.
+  it.each(ASSET_FOLDERS)('should normalize dot-separated hashes in %s folder', (folder) => {
+    expect(normalizeAssetFilename(`${folder}/entry-client-routing.CHIDzETC.js`))
+      .toBe(`${folder}/entry-client-routing.js`)
+    expect(normalizeAssetFilename(`${folder}/src_pages_index.77wXnlLn.js`))
+      .toBe(`${folder}/src_pages_index.js`)
   })
 
   it('should normalize Vite hashed filenames in nested asset folders', () => {
@@ -56,19 +54,51 @@ describe('normalizeAssetFilename', () => {
     expect(normalizeAssetFilename('file-abc1234.js')).toBe('file-abc1234.js') // 7 chars
     expect(normalizeAssetFilename('file-abc12345678.js')).toBe('file-abc12345678.js') // 11 chars
   })
+
+  it('should leave unhashed names in asset folders alone', () => {
+    expect(normalizeAssetFilename('assets/index.html')).toBe('assets/index.html')
+    expect(normalizeAssetFilename('assets/index.pageContext.json')).toBe('assets/index.pageContext.json')
+  })
 })
 
-describe('sortFiles', () => {
-  it('should sort by priority then alphabetically', () => {
-    const files = ['index.html', 'assets/bundle.js', 'script.js', 'assets/image.png']
-    const sorted = sortFiles(files)
-    expect(sorted).toEqual(['assets/bundle.js', 'assets/image.png', 'script.js', 'index.html'])
+describe('fileGroup', () => {
+  it('groups by extension, lowercased', () => {
+    expect(fileGroup('client/assets/app.js')).toBe('js')
+    expect(fileGroup('client/INDEX.HTML')).toBe('html')
+    expect(fileGroup('index.pageContext.json')).toBe('json')
   })
 
-  it('should sort alphabetically when priorities are equal', () => {
-    const files = ['z.js', 'a.js', 'm.js']
-    const sorted = sortFiles(files)
-    expect(sorted).toEqual(['a.js', 'm.js', 'z.js'])
+  it('gives an extension-less file its own name, since it shares a type with nothing', () => {
+    expect(fileGroup('api')).toBe('api')
+    expect(fileGroup('bin/server')).toBe('server')
+  })
+
+  it('treats a leading dot as a name, not an extension', () => {
+    expect(fileGroup('.gitkeep')).toBe('.gitkeep')
+  })
+})
+
+describe('groupRows', () => {
+  it('sums each extension and orders by head size, largest first', () => {
+    const rows = groupRows([
+      { label: 'a.js', group: 'js', base: 10, head: 20 },
+      { label: 'b.js', group: 'js', base: 10, head: 20 },
+      { label: 'a.css', group: 'css', base: 100, head: 100 },
+    ])
+
+    expect(rows).toEqual([
+      { group: 'css', label: '`css`', base: 100, head: 100 },
+      { group: 'js', label: '`js`', base: 20, head: 40 },
+    ])
+  })
+
+  it('breaks ties on the group name, so the order is stable across runs', () => {
+    const rows = groupRows([
+      { label: 'a.svg', group: 'svg', base: 0, head: 10 },
+      { label: 'a.css', group: 'css', base: 0, head: 10 },
+    ])
+
+    expect(rows.map(row => row.group)).toEqual(['css', 'svg'])
   })
 })
 
@@ -120,34 +150,88 @@ describe('baselineNote', () => {
   })
 })
 
-describe('generateDiffTable', () => {
-  it('should generate table without cache', () => {
-    const current: FileStat[] = [{ file: 'index.html', size: 100 }]
-    const { tableRows, hasChanges } = generateDiffTable(current, null)
-    const joined = tableRows.join('\n')
-    expect(joined).toContain('File')
-    expect(joined).toContain('index.html')
-    expect(joined).toContain('**Total**')
-    expect(hasChanges).toBe(true)
+describe('buildRows', () => {
+  it('labels a merged entry with how many files it covers', () => {
+    const rows = buildRows([{ file: 'assets/chunk.js', size: 300, count: 3 }], null)
+
+    expect(rows[0].label).toBe('assets/chunk.js (×3)')
+    expect(rows[0].head).toBe(300)
   })
 
-  it('should generate table with cache and sort by priority', () => {
-    const current: FileStat[] = [
-      { file: 'index.html', size: 150 },
-      { file: 'assets/bundle.js', size: 200 },
-    ]
-    const cached: FileStat[] = [
-      { file: 'index.html', size: 100 },
-      { file: 'assets/bundle.js', size: 200 },
-    ]
-    const { tableRows, hasChanges } = generateDiffTable(current, cached)
-    const joined = tableRows.join('\n')
-    expect(joined).toContain('Base (Before Merge)')
-    expect(joined).toContain('Head (After Merge)')
-    expect(joined).toContain('Delta')
-    expect(joined).toContain('**Total**')
-    expect(joined.indexOf('assets/bundle.js')).toBeLessThan(joined.indexOf('index.html'))
-    expect(hasChanges).toBe(true)
+  it('leaves a single file unadorned', () => {
+    expect(buildRows([{ file: 'app.js', size: 10, count: 1 }], null)[0].label).toBe('app.js')
+  })
+
+  it('reads a baseline written before counts existed as one file per entry', () => {
+    expect(buildRows([{ file: 'app.js', size: 10 }], null)[0].label).toBe('app.js')
+  })
+
+  it('keeps a file present only in the baseline, at head size 0', () => {
+    const rows = buildRows([], [{ file: 'gone.js', size: 40 }])
+
+    expect(rows).toEqual([{ label: 'gone.js', group: 'js', base: 40, head: 0 }])
+  })
+})
+
+describe('generateSection', () => {
+  const current: FileStat[] = [
+    { file: 'assets/bundle.js', size: 200 },
+    { file: 'index.html', size: 150 },
+    { file: 'style.css', size: 400 },
+  ]
+
+  it('leads with a type table ordered by size, then folds the file list away', () => {
+    const { section } = generateSection('dist', current, null)
+
+    expect(section).toContain('### dist')
+    expect(section.indexOf('`css`')).toBeLessThan(section.indexOf('`js`'))
+    expect(section.indexOf('`js`')).toBeLessThan(section.indexOf('`html`'))
+    expect(section).toContain('<summary>3 entries</summary>')
+    expect(section).toContain('assets/bundle.js')
+  })
+
+  it('drops the type table when one type would restate the directory total', () => {
+    const { section } = generateSection('api/dist', [{ file: 'api', size: 100 }], null)
+
+    expect(section).not.toContain('| Type |')
+    expect(section).toContain('<summary>1 entry</summary>')
+    expect(section).toContain('| api |')
+  })
+
+  it('sorts files by their type, so the list reads in the order the type table does', () => {
+    const { section } = generateSection('dist', current, null)
+
+    expect(section.indexOf('style.css')).toBeLessThan(section.indexOf('assets/bundle.js'))
+    expect(section.indexOf('assets/bundle.js')).toBeLessThan(section.indexOf('index.html'))
+  })
+
+  it('reports the directory total for the summary table', () => {
+    const { totalRow } = generateSection('dist', current, null)
+
+    expect(totalRow).toContain('**dist**')
+    expect(totalRow).toContain('750 B')
+  })
+
+  it('treats a missing baseline as unreviewed rather than unchanged', () => {
+    expect(generateSection('dist', current, null).hasChanges).toBe(true)
+  })
+
+  it('reports no changes when every size matches the baseline', () => {
+    expect(generateSection('dist', current, current).hasChanges).toBe(false)
+  })
+
+  it('reports changes when a single size moves', () => {
+    const cached = [...current.slice(0, 2), { file: 'style.css', size: 399 }]
+
+    expect(generateSection('dist', current, cached).hasChanges).toBe(true)
+  })
+
+  it('shows both columns and a delta once a baseline exists', () => {
+    const { section } = generateSection('dist', current, current)
+
+    expect(section).toContain('Base (Before Merge)')
+    expect(section).toContain('Head (After Merge)')
+    expect(section).toContain('Delta')
   })
 })
 
@@ -196,7 +280,7 @@ describe('getFileStats', () => {
     fs.rmSync(tempDir, { recursive: true, force: true })
   })
 
-  it('should get file stats with normalization and sorting', async () => {
+  it('should get file stats with normalization', async () => {
     expect(await getFileStats(tempDir)).toEqual([])
 
     fs.mkdirSync(path.join(tempDir, 'assets'), { recursive: true })
@@ -205,8 +289,30 @@ describe('getFileStats', () => {
     fs.writeFileSync(path.join(tempDir, 'index.html'), 'html')
 
     const result = await getFileStats(tempDir)
-    expect(result[0].file).toBe('assets/app.js') // Sorted alphabetically after normalization
+    expect(result.find(r => r.file === 'assets/app.js')).toBeDefined()
     expect(result.find(r => r.file === 'assets/bundle.js')).toBeDefined()
+  })
+
+  // A build emits several `chunk-<hash>.js`; keying them by their normalized name kept the last
+  // and dropped the rest from the total, under-reporting the directory by the size of the others.
+  it('sums files that normalize onto the same name, rather than keeping one', async () => {
+    fs.mkdirSync(path.join(tempDir, 'assets'), { recursive: true })
+    fs.writeFileSync(path.join(tempDir, 'assets', 'chunk-BT0_zZ72.js'), 'a'.repeat(30))
+    fs.writeFileSync(path.join(tempDir, 'assets', 'chunk-DGZ1aNwa.js'), 'b'.repeat(12))
+    fs.writeFileSync(path.join(tempDir, 'assets', 'chunk-sdhIr6cn.js'), 'c'.repeat(5))
+
+    const result = await getFileStats(tempDir)
+
+    expect(result).toEqual([{ file: 'assets/chunk.js', size: 47, count: 3 }])
+  })
+
+  it('leaves out what the ignore patterns match', async () => {
+    fs.writeFileSync(path.join(tempDir, 'main.js'), 'js')
+    fs.writeFileSync(path.join(tempDir, 'main.js.map'), 'map')
+
+    const result = await getFileStats(tempDir, ['**/*.map'])
+
+    expect(result.map(r => r.file)).toEqual(['main.js'])
   })
 })
 
@@ -235,9 +341,8 @@ describe('analyzeDirectory', () => {
     fs.writeFileSync(path.join(tempDir, 'test.js'), 'test')
     const result = await analyzeDirectory(tempDir, path.join(cacheDir, 'cache.json'))
     expect(result.hasChanges).toBe(true)
-    const markdown = result.tableRows.join('\n')
-    expect(markdown).toContain('test.js')
-    expect(markdown).toContain('**Total**')
+    expect(result.section).toContain('test.js')
+    expect(result.totalRow).toContain(tempDir)
   })
 
   it('should detect no changes when sizes match', async () => {
@@ -248,8 +353,7 @@ describe('analyzeDirectory', () => {
 
     const result = await analyzeDirectory(tempDir, cachePath)
     expect(result.hasChanges).toBe(false)
-    const markdown = result.tableRows.join('\n')
-    expect(markdown).toContain('**Total**')
+    expect(result.totalRow).toContain(tempDir)
   })
 
   it('should detect changes when file exists only in cache or only in current', async () => {
@@ -265,17 +369,14 @@ describe('analyzeDirectory', () => {
 
     const result = await analyzeDirectory(tempDir, cachePath)
     expect(result.hasChanges).toBe(true)
-    const markdown = result.tableRows.join('\n')
-    expect(markdown).toContain('deleted.js')
-    expect(markdown).toContain('**Total**')
+    expect(result.section).toContain('deleted.js')
+    expect(result.totalRow).toContain(tempDir)
 
     // Test file exists only in current (not in cache)
     fs.writeFileSync(path.join(tempDir, 'new.js'), 'new')
     const result2 = await analyzeDirectory(tempDir, cachePath)
     expect(result2.hasChanges).toBe(true)
-    const markdown2 = result2.tableRows.join('\n')
-    expect(markdown2).toContain('new.js')
-    expect(markdown2).toContain('**Total**')
+    expect(result2.section).toContain('new.js')
   })
 
   it('should handle invalid cache file', async () => {
@@ -284,7 +385,6 @@ describe('analyzeDirectory', () => {
 
     const result = await analyzeDirectory(tempDir, path.join(cacheDir, 'cache.json'))
     expect(result.hasChanges).toBe(true)
-    const markdown = result.tableRows.join('\n')
-    expect(markdown).toContain('**Total**')
+    expect(result.totalRow).toContain(tempDir)
   })
 })

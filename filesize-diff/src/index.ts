@@ -9,20 +9,30 @@ import { glob } from 'tinyglobby'
 import { type Baseline, loadCachedStats, restoreCache, saveCache, saveStats } from './cache'
 import { commentOnPR } from './comment'
 
-const VITE_HASH_REGEX = /-[\w-]{8,10}(\.[a-z]+)$/i
+// Bundlers separate the hash with either a dash (`app-Ckdnwnhq.js`) or a dot
+// (`entry-client-routing.CHIDzETC.js`, which Vike emits).
+// ponytail: a real name whose last-but-one dotted segment is 8-10 chars (`foo.settings.js`) is
+// mistaken for a hash and merged with its siblings. Match the hash alphabet if that ever bites.
+const VITE_HASH_REGEX = /[.-][\w-]{8,10}(\.[a-z]+)$/i
 const PATH_SEPARATORS_REGEX = /[\\/]/g
 
 export interface FileStat {
   file: string
   size: number
+  /**
+   * How many files this entry merges, when normalization mapped several hashed names onto one.
+   * Absent in baselines published before this field existed.
+   */
+  count?: number
+}
+
+interface Row {
+  label: string
+  base: number
+  head: number
 }
 
 export const ASSET_FOLDERS = ['assets'] as const
-
-const FILE_PRIORITY_SCORE = {
-  ASSETS_PREFIX: 2,
-  JS_EXTENSION: 1,
-} as const
 
 const COLUMN_HEADERS = {
   BASE: 'Base (Before Merge)',
@@ -30,47 +40,45 @@ const COLUMN_HEADERS = {
   DELTA: 'Delta',
 } as const
 
-export function getFilePriority(file: string): number {
-  let score = 0
-  if (file.startsWith('assets/')) score += FILE_PRIORITY_SCORE.ASSETS_PREFIX
-  if (file.endsWith('.js')) score += FILE_PRIORITY_SCORE.JS_EXTENSION
-  return score
-}
-
 export function normalizeAssetFilename(file: string): string {
   // Only normalize Vite build hashed asset filenames for files in asset folders
   if (!ASSET_FOLDERS.some(folder => file.startsWith(`${folder}/`) || file.includes(`/${folder}/`))) {
     return file
   }
 
-  // Normalize Vite build hashed asset filenames (e.g., asset-Ckdnwnhq.js -> asset.js)
-  // Vite generates url-safe base64 hashes (8-10 chars, a-z, A-Z, 0-9, -, _) in format: filename-[hash].ext
   return file.replace(VITE_HASH_REGEX, '$1')
 }
 
-export function sortFiles(files: string[]): string[] {
-  return files.toSorted((a, b) => {
-    const scoreDiff = getFilePriority(b) - getFilePriority(a)
-    return scoreDiff !== 0 ? scoreDiff : a.localeCompare(b)
-  })
+/**
+ * The row a file is grouped under. Extension-less files group under their own name rather than a
+ * shared bucket: a compiled binary has no type in common with anything else in the directory.
+ */
+export function fileGroup(file: string): string {
+  const base = file.split('/').pop()!
+  const dot = base.lastIndexOf('.')
+  return dot > 0 ? base.slice(dot + 1).toLowerCase() : base
 }
 
-export async function getFileStats(directory: string): Promise<FileStat[]> {
-  const files = await glob(['**/*'], { cwd: directory })
+export async function getFileStats(directory: string, ignore: string[] = []): Promise<FileStat[]> {
+  const files = await glob(['**/*'], { cwd: directory, ignore })
 
-  const fileStats = await Promise.all(
+  const sized = await Promise.all(
     files.map(async file => ({
       file: normalizeAssetFilename(file),
       size: (await fs.promises.stat(join(directory, file))).size,
     })),
   )
 
-  fileStats.sort((a, b) => {
-    const scoreDiff = getFilePriority(b.file) - getFilePriority(a.file)
-    return scoreDiff !== 0 ? scoreDiff : a.file.localeCompare(b.file)
-  })
+  // Normalization maps every `chunk-<hash>.js` onto one name, so entries must be summed rather
+  // than keyed: keeping the last would drop the others from the table *and* from the total.
+  const merged = new Map<string, FileStat>()
 
-  return fileStats
+  for (const { file, size } of sized) {
+    const previous = merged.get(file)
+    merged.set(file, { file, size: (previous?.size ?? 0) + size, count: (previous?.count ?? 0) + 1 })
+  }
+
+  return [...merged.values()]
 }
 
 export function formatDiff(currentSize: number, cachedSize: number): string {
@@ -141,59 +149,111 @@ export function baselineNote(baseline: Baseline): string {
   return `> **No baseline for \`${baseline.branch}\`**: sizes are listed without a comparison. A baseline is published by every run on \`${baseline.branch}\`, and GitHub evicts caches left unused for 7 days.\n\n`
 }
 
-export function generateDiffTable(
-  current: FileStat[],
-  cached: FileStat[] | null,
-): { tableRows: string[], hasChanges: boolean } {
-  const hasCache = cached !== null
-  const currentMap = new Map(current.map(s => [s.file, s.size]))
-  const cachedMap = hasCache ? new Map(cached.map(s => [s.file, s.size])) : new Map()
+function generateTable(label: string, rows: Row[], hasCache: boolean, total?: Row): string {
+  const header = hasCache
+    ? `| ${label} | ${COLUMN_HEADERS.BASE} | ${COLUMN_HEADERS.HEAD} | ${COLUMN_HEADERS.DELTA} |\n| :--- | ---: | ---: | ---: |`
+    : `| ${label} | Size |\n| :--- | ---: |`
 
-  const allFiles = new Set([...currentMap.keys(), ...cachedMap.keys()])
-  const sortedFiles = sortFiles([...allFiles])
+  const body = rows.map(row => hasCache
+    ? `| ${row.label} | ${filesize(row.base)} | ${filesize(row.head)} | ${formatDiff(row.head, row.base)} |`
+    : `| ${row.label} | ${filesize(row.head)} |`)
 
-  const rows: string[] = []
-  let totalCurrent = 0
-  let totalCached = 0
-  let hasChanges = !hasCache
-
-  for (const file of sortedFiles) {
-    const currentSize = currentMap.get(file) ?? 0
-    const cachedSize = cachedMap.get(file) ?? 0
-    totalCurrent += currentSize
-    totalCached += cachedSize
-
-    if (hasCache) {
-      if (currentSize !== cachedSize) hasChanges = true
-      const diff = formatDiff(currentSize, cachedSize)
-      rows.push(`| ${file} | ${filesize(cachedSize)} | ${filesize(currentSize)} | ${diff} |`)
-    }
-    else {
-      rows.push(`| ${file} | ${filesize(currentSize)} |`)
-    }
+  if (total) {
+    body.push(formatTotalRow(total.label, total.head, total.base, hasCache))
   }
 
-  const header = hasCache
-    ? `| File | ${COLUMN_HEADERS.BASE} | ${COLUMN_HEADERS.HEAD} | ${COLUMN_HEADERS.DELTA} |\n| :--- | ---: | ---: | ---: |`
-    : '| File | Size |\n| :--- | ---: |'
+  return [header, ...body].join('\n')
+}
 
-  const tableRows = [header, ...rows]
-  tableRows.push(formatTotalRow('Total', totalCurrent, totalCached, hasCache))
+/**
+ * One row per extension, largest first — the shape of a build is easier to read than its file list,
+ * and the file list is one click away.
+ */
+export function groupRows(rows: (Row & { group: string })[]): (Row & { group: string })[] {
+  const groups = new Map<string, Row & { group: string }>()
 
-  return { tableRows, hasChanges }
+  for (const { group, base, head } of rows) {
+    const previous = groups.get(group) ?? { group, label: `\`${group}\``, base: 0, head: 0 }
+    groups.set(group, { ...previous, base: previous.base + base, head: previous.head + head })
+  }
+
+  return [...groups.values()].sort((a, b) => b.head - a.head || a.group.localeCompare(b.group))
+}
+
+export function buildRows(current: FileStat[], cached: FileStat[] | null): (Row & { group: string })[] {
+  const currentMap = new Map(current.map(s => [s.file, s]))
+  const cachedMap = new Map((cached ?? []).map(s => [s.file, s]))
+
+  return [...new Set([...currentMap.keys(), ...cachedMap.keys()])].map((file) => {
+    const count = (currentMap.get(file) ?? cachedMap.get(file))?.count ?? 1
+
+    return {
+      label: count > 1 ? `${file} (×${count})` : file,
+      group: fileGroup(file),
+      base: cachedMap.get(file)?.size ?? 0,
+      head: currentMap.get(file)?.size ?? 0,
+    }
+  })
+}
+
+export interface DirectoryReport {
+  hasChanges: boolean
+  section: string
+  totalRow: string
+}
+
+export function generateSection(directory: string, current: FileStat[], cached: FileStat[] | null): DirectoryReport {
+  const hasCache = cached !== null
+  const rows = buildRows(current, cached)
+  const groups = groupRows(rows)
+
+  const order = new Map(groups.map((group, index) => [group.group, index]))
+  const files = rows.toSorted((a, b) =>
+    order.get(a.group)! - order.get(b.group)! || a.label.localeCompare(b.label))
+
+  const total = {
+    label: 'Total',
+    base: rows.reduce((sum, row) => sum + row.base, 0),
+    head: rows.reduce((sum, row) => sum + row.head, 0),
+  }
+
+  const entries = files.length
+  const parts = [`### ${directory}`, '']
+
+  // A single group restates the directory total three times over — the summary table already
+  // carries it, so the type table is dropped and the file list stands alone.
+  if (groups.length > 1) {
+    parts.push(generateTable('Type', groups, hasCache, total), '')
+  }
+
+  parts.push(
+    '<details>',
+    `<summary>${entries} ${entries === 1 ? 'entry' : 'entries'}</summary>`,
+    '',
+    generateTable('File', files, hasCache),
+    '',
+    '</details>',
+  )
+
+  return {
+    hasChanges: !hasCache || rows.some(row => row.base !== row.head),
+    section: parts.join('\n'),
+    totalRow: formatTotalRow(directory, total.head, total.base, hasCache),
+  }
 }
 
 export async function analyzeDirectory(
   directory: string,
   cachePath: string,
-): Promise<{ tableRows: string[], hasChanges: boolean }> {
+  ignore: string[] = [],
+): Promise<DirectoryReport> {
   // Check if directory exists
   if (!fs.existsSync(directory)) {
     core.setFailed(`Directory not found at ${directory}. Please ensure the directory exists before running this action.`)
     throw new Error(`Directory not found at ${directory}`)
   }
 
-  const currentStats = await getFileStats(directory)
+  const currentStats = await getFileStats(directory, ignore)
 
   // Load cached stats
   const cachedStats = fs.existsSync(cachePath) ? loadCachedStats(cachePath) : null
@@ -201,7 +261,7 @@ export async function analyzeDirectory(
   // Save current stats
   saveStats(currentStats, cachePath)
 
-  return generateDiffTable(currentStats, cachedStats)
+  return generateSection(directory, currentStats, cachedStats)
 }
 
 export async function run(): Promise<void> {
@@ -213,6 +273,7 @@ export async function run(): Promise<void> {
     const prComment = core.getBooleanInput('comment-on-pr', { required: false }) ?? true
 
     const directories = directoriesInput.split(',').map(d => d.trim()).filter(Boolean)
+    const ignore = (core.getInput('ignore') || '').split(',').map(p => p.trim()).filter(Boolean)
 
     if (directories.length === 0) {
       return core.setFailed('At least one directory must be provided')
@@ -228,38 +289,14 @@ export async function run(): Promise<void> {
 
         core.info(`Analyzing ${directory}...`)
 
-        return { directory, ...(await analyzeDirectory(directory, cachePath)) }
+        return analyzeDirectory(directory, cachePath, ignore)
       }),
     )
 
-    const detailsSections: string[] = []
-    const totalRows: string[] = []
-    let overallHasChanges = false
-
-    for (const { directory, tableRows, hasChanges } of results) {
-      if (hasChanges) {
-        overallHasChanges = true
-      }
-
-      // Extract last row (total row) and replace "Total" with directory name
-      const lastRow = tableRows.at(-1)!
-      const totalRow = lastRow.replace('**Total**', directory)
-      totalRows.push(totalRow)
-
-      // Wrap each section in a details dropdown
-      const sectionMarkdown = `<details>
-<summary>${directory}</summary>
-<br>
-
-${tableRows.join('\n')}
-
-</details>`
-      detailsSections.push(sectionMarkdown)
-    }
-
-    // Generate summary table with totals
-    const totalTable = generateTotalTable(totalRows)
-    const fullSummary = `# 📋 File size Summary\n\n${baselineNote(baseline)}${totalTable}\n\n${detailsSections.join('\n\n')}`
+    const overallHasChanges = results.some(result => result.hasChanges)
+    const totalTable = generateTotalTable(results.map(result => result.totalRow))
+    const sections = results.map(result => result.section)
+    const fullSummary = `# 📋 File size Summary\n\n${baselineNote(baseline)}${totalTable}\n\n${sections.join('\n\n')}`
 
     // Write to step summary
     core.summary.addRaw(fullSummary)

@@ -41,6 +41,7 @@ permissions:
 ## Inputs
 
 - `directories` (required): Comma-separated list of directories to analyze (e.g., `api/dist,app/dist`) (relative to workspace root)
+- `ignore` (optional): Comma-separated glob patterns to leave out, matched relative to each directory (e.g. `**/*.map`). Default: none
 - `cache-path` (optional): Path to cache directory. Default: `.github/cache/build-stats`
 - `cache-key` (optional): Cache key prefix; the baseline branch and commit are appended to it, so do not name a branch here. Default: `build-stats`
 - `comment-on-pr` (optional): Whether to comment on PRs with file size changes. Default: `true`
@@ -51,6 +52,37 @@ permissions:
 ## Outputs
 
 - `has-changes`: Whether any file size changes were detected against the baseline. Also `true` when no baseline was found, since the sizes are then unreviewed
+
+## What the summary looks like
+
+One table of directory totals, then a section per directory: **one row per file type**, largest
+first, with the file list one click away in a `<details>`.
+
+```markdown
+| Directory    | Base (Before Merge) | Head (After Merge) |                Delta |
+| :----------- | ------------------: | -----------------: | -------------------: |
+| **app/dist** |       **277.55 kB** |      **280.33 kB** | +2.78 kB (+1.00%) 🔺 |
+
+### app/dist
+
+| Type      | Base (Before Merge) | Head (After Merge) |                Delta |
+| :-------- | ------------------: | -----------------: | -------------------: |
+| `js`      |            243.7 kB |           246.3 kB |  +2.6 kB (+1.07%) 🔺 |
+| `css`     |            21.82 kB |              22 kB |   +180 B (+0.82%) 🔺 |
+| **Total** |       **277.55 kB** |      **280.33 kB** | +2.78 kB (+1.00%) 🔺 |
+```
+
+Two things worth knowing about how rows are formed:
+
+- **Files with no extension are their own row, under their own name.** A compiled binary shares a
+  type with nothing, so bucketing it under "other" would only hide it.
+- **Hashed asset names are normalized and then summed.** Three `chunk-<hash>.js` become one
+  `chunk.js (×3)` row whose size is their total. Summing rather than keying is what makes the
+  directory total right — and comparing an aggregate is the only comparison that survives a
+  rebuild, since an individual hashed chunk has no identity from one build to the next.
+
+When a directory holds a single type, the type table is dropped: it would restate the directory
+total that the summary table above already carries.
 
 ## No baseline
 
