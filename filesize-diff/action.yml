@@ -6,6 +6,11 @@ inputs:
     description: Comma-separated list of directories to analyze (e.g., api/dist,app/dist) (relative to workspace root)
     required: true
 
+  ignore:
+    description: Comma-separated glob patterns to leave out of the analysis, relative to each directory (e.g. '**/*.map')
+    required: false
+    default: ''
+
   cache-path:
     description: Path to cache directory
     required: false

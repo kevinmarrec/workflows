@@ -296,7 +296,7 @@ describe('main function integration', () => {
     }
   })
 
-  it('should use directory name directly in details summary', async () => {
+  it('should head each section with the directory name', async () => {
     const distDir = path.join(tempDir, 'dist')
     fs.mkdirSync(distDir, { recursive: true })
     fs.writeFileSync(path.join(distDir, 'file1.js'), 'content1')
@@ -331,9 +331,9 @@ describe('main function integration', () => {
       const summaryCall = vi.mocked(core.summary.addRaw).mock.calls[0][0]
       // Should contain the main title
       expect(summaryCall).toContain('# 📋 File size Summary')
-      // Should be wrapped in details tags with directory name as summary
-      expect(summaryCall).toContain('<details>')
-      expect(summaryCall).toContain('<summary>dist</summary>')
+      // Section headed by the directory, file list folded behind its entry count
+      expect(summaryCall).toContain('### dist')
+      expect(summaryCall).toContain('<summary>1 entry</summary>')
       // Should contain the table content
       expect(summaryCall).toContain('file1.js')
     }
