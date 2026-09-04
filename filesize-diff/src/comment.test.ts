@@ -1,6 +1,6 @@
 import * as core from '@actions/core'
 import * as github from '@actions/github'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import { commentOnPR } from './comment'
 
@@ -15,10 +15,6 @@ vi.mock('@actions/github', () => ({
 }))
 
 describe('commentOnPR', () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-  })
-
   it('should return early for non-PR events or missing PR number', async () => {
     vi.mocked(core.getInput).mockReturnValue('token')
     vi.mocked(github.getOctokit).mockReturnValue({ rest: { issues: {} } } as any)

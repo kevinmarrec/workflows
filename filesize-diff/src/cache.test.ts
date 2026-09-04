@@ -107,7 +107,6 @@ describe('baselineBranch', () => {
 
 describe('restoreCache', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
     vi.mocked(core.info).mockImplementation(() => {})
   })
 
@@ -186,7 +185,6 @@ describe('restoreCache', () => {
 
 describe('saveCache', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
     vi.mocked(core.info).mockImplementation(() => {})
   })
 
