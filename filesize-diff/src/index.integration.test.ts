@@ -38,7 +38,6 @@ describe('main function integration', () => {
   let cacheDir: string
 
   beforeEach(() => {
-    vi.clearAllMocks()
     vi.mocked(core.startGroup).mockImplementation(() => {})
     vi.mocked(core.endGroup).mockImplementation(() => {})
     tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'))
