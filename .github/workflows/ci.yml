@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Setup Bun
-        uses: kevinmarrec/workflows/setup-bun@e02424c6951d1acaf87999a5bbce377eaddf4343 # main
+        uses: kevinmarrec/workflows/setup-bun@e8a430a79e974b98efa1cf00680b7a7be81af2d3 # main
 
       - name: Lint
         run: bun run lint
@@ -42,7 +42,7 @@ jobs:
       contents: write
     steps:
       - name: Setup Bun
-        uses: kevinmarrec/workflows/setup-bun@e02424c6951d1acaf87999a5bbce377eaddf4343 # main
+        uses: kevinmarrec/workflows/setup-bun@e8a430a79e974b98efa1cf00680b7a7be81af2d3 # main
         with:
           persist-credentials: true
 
