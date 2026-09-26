@@ -21,10 +21,10 @@
   "devDependencies": {
     "@kevinmarrec/eslint-config": "^1.24.0",
     "@kevinmarrec/tsconfig": "^1.24.0",
-    "@types/node": "^26.6.2",
+    "@types/node": "^26.6.3",
     "@vitest/coverage-v8": "5.0.2",
     "eslint": "^10.11.0",
-    "knip": "^6.37.0",
+    "knip": "^6.38.0",
     "typescript": "~6.0.3",
     "vitest": "^5.0.2"
   },
