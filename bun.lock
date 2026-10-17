@@ -4,8 +4,8 @@
   "workspaces": {
     "": {
       "devDependencies": {
-        "@kevinmarrec/eslint-config": "^1.25.0",
-        "@kevinmarrec/tsconfig": "^1.25.0",
+        "@kevinmarrec/eslint-config": "^1.26.0",
+        "@kevinmarrec/tsconfig": "^1.26.0",
         "@types/node": "^26.6.5",
         "@vitest/coverage-v8": "5.0.5",
         "eslint": "^10.13.0",
@@ -158,9 +158,9 @@
 
     "@jridgewell/trace-mapping": ["@jridgewell/trace-mapping@0.3.31", "", { "dependencies": { "@jridgewell/resolve-uri": "^3.1.0", "@jridgewell/sourcemap-codec": "^1.4.14" } }, "sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw=="],
 
-    "@kevinmarrec/eslint-config": ["@kevinmarrec/eslint-config@1.25.0", "", { "dependencies": { "@antfu/eslint-config": "^9.5.1", "@unocss/eslint-plugin": "^66.10.5", "defu": "^6.1.7", "eslint-flat-config-utils": "^3.2.0", "eslint-plugin-format": "^2.0.1", "eslint-plugin-vuejs-accessibility": "^2.6.0", "tinyglobby": "^0.2.17" }, "peerDependencies": { "eslint": ">=9.20.0" } }, "sha512-8CQhp2VPEi+NsylHRqEgQ+JO45v1mgU7gs/0Hfjbt334wfmJG0K7i9sI4NaFp7Id5m7Zs/0pmUTp5r8k3ZD5Ow=="],
+    "@kevinmarrec/eslint-config": ["@kevinmarrec/eslint-config@1.26.0", "", { "dependencies": { "@antfu/eslint-config": "^9.5.1", "@unocss/eslint-plugin": "^66.11.0", "defu": "^6.1.7", "eslint-flat-config-utils": "^3.2.0", "eslint-plugin-format": "^2.0.1", "eslint-plugin-vuejs-accessibility": "^2.6.2", "tinyglobby": "^0.2.17" }, "peerDependencies": { "eslint": ">=9.20.0" } }, "sha512-EAOmr8nav2B7b1aH0DGh8O7vDiNFbxvxk/s/mWDlDwe1ZKDjwQwRQnUnPgjqvgjBUKqsiS1SkAaoJyZpe4Hbnw=="],
 
-    "@kevinmarrec/tsconfig": ["@kevinmarrec/tsconfig@1.25.0", "", {}, "sha512-/R9ssNvVftjP4l0JCuJEj5slDEEGid8iXhFkJcxiaayGvh6Y8nMY/BxA2ARZV5pBE1wiYo8bHAywCrpdFQ6RcQ=="],
+    "@kevinmarrec/tsconfig": ["@kevinmarrec/tsconfig@1.26.0", "", {}, "sha512-A1w185IjeR/6mVPzTH2UFJQoUR1bkoQ1INjIiFzfdSPxoLXcRaz9CEvHFhFbyrS5aqhVDj4C9TBzwpN03CYUCA=="],
 
     "@keyv/bigmap": ["@keyv/bigmap@1.3.1", "", { "dependencies": { "hashery": "^1.4.0", "hookified": "^1.15.0" }, "peerDependencies": { "keyv": "^5.6.0" } }, "sha512-WbzE9sdmQtKy8vrNPa9BRnwZh5UF4s1KTmSK0KUVLo3eff5BlQNNWDnFOouNpKfPKDnms9xynJjsMYjMaT/aFQ=="],
 
