@@ -1,7 +1,7 @@
 {
   "type": "module",
   "private": true,
-  "packageManager": "bun@1.4.3",
+  "packageManager": "bun@1.4.4",
   "license": "MIT",
   "workspaces": [
     "filesize-diff",
@@ -19,12 +19,12 @@
     "test:coverage": "vitest --coverage"
   },
   "devDependencies": {
-    "@kevinmarrec/eslint-config": "^1.26.0",
-    "@kevinmarrec/tsconfig": "^1.26.0",
+    "@kevinmarrec/eslint-config": "^1.27.0",
+    "@kevinmarrec/tsconfig": "^1.27.0",
     "@types/node": "^26.6.5",
     "@vitest/coverage-v8": "5.0.5",
     "eslint": "^10.13.0",
-    "knip": "^6.41.0",
+    "knip": "^6.43.0",
     "typescript": "~6.0.3",
     "vitest": "^5.0.5"
   },
