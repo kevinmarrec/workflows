@@ -8,7 +8,12 @@ describe('hasCommit', () => {
     const { calls, exec } = recordingExec()
 
     await expect(hasCommit('abc123', exec)).resolves.toBe(true)
-    expect(calls).toEqual([{ command: 'git', args: ['cat-file', '-e', 'abc123^{commit}'] }])
+    expect(calls).toEqual([
+      {
+        command: 'git',
+        args: ['cat-file', '-e', 'abc123^{commit}'],
+      },
+    ])
   })
 
   it('rejects a commit git cannot resolve', async () => {
@@ -31,7 +36,18 @@ describe('addWorktree', () => {
 
     await addWorktree('abc123', '/tmp/base', exec)
 
-    expect(calls).toEqual([{ command: 'git', args: ['worktree', 'add', '--detach', '/tmp/base', 'abc123'] }])
+    expect(calls).toEqual([
+      {
+        command: 'git',
+        args: [
+          'worktree',
+          'add',
+          '--detach',
+          '/tmp/base',
+          'abc123',
+        ],
+      },
+    ])
   })
 
   it('reports failure instead of throwing', async () => {
@@ -47,6 +63,16 @@ describe('removeWorktree', () => {
 
     await removeWorktree('/tmp/base', exec)
 
-    expect(calls).toEqual([{ command: 'git', args: ['worktree', 'remove', '--force', '/tmp/base'] }])
+    expect(calls).toEqual([
+      {
+        command: 'git',
+        args: [
+          'worktree',
+          'remove',
+          '--force',
+          '/tmp/base',
+        ],
+      },
+    ])
   })
 })

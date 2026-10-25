@@ -17,7 +17,9 @@ vi.mock('@actions/github', () => ({
 describe('commentOnPR', () => {
   it('should return early for non-PR events or missing PR number', async () => {
     vi.mocked(core.getInput).mockReturnValue('token')
-    vi.mocked(github.getOctokit).mockReturnValue({ rest: { issues: {} } } as any)
+    vi.mocked(github.getOctokit).mockReturnValue({
+      rest: { issues: {} },
+    } as any)
 
     Object.assign(github.context, {
       eventName: 'push',
@@ -61,7 +63,13 @@ describe('commentOnPR', () => {
     expect(mockOctokit.rest.issues.createComment).toHaveBeenCalled()
 
     mockOctokit.rest.issues.listComments.mockResolvedValue({
-      data: [{ id: 456, user: { type: 'Bot' }, body: '<!-- filesize-diff-action -->' }],
+      data: [
+        {
+          id: 456,
+          user: { type: 'Bot' },
+          body: '<!-- filesize-diff-action -->',
+        },
+      ],
     })
     await commentOnPR('body')
     expect(mockOctokit.rest.issues.updateComment).toHaveBeenCalled()

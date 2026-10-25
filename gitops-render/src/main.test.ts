@@ -59,11 +59,15 @@ async function echoRender(source: ChartSource): Promise<RenderResult> {
 }
 
 function scenario({ apps, baseApps, render, materializeBase, input }: Scenario = {}) {
-  const files = apps ?? { '.gitops/apps/traefik.yaml': application('traefik') }
+  const files = apps ?? {
+    '.gitops/apps/traefik.yaml': application('traefik'),
+  }
   const baseFiles = baseApps ?? files
 
   const cleanupBase = vi.fn(async () => {})
-  const treeOf = (root: string) => root === '.' ? files : baseFiles
+  const treeOf = (root: string) => root === '.'
+    ? files
+    : baseFiles
 
   const deps: Deps = {
     listApps: async (_glob, root) => Object.keys(treeOf(root)),
@@ -75,7 +79,12 @@ function scenario({ apps, baseApps, render, materializeBase, input }: Scenario =
 
   return {
     cleanupBase,
-    run: () => main({ apps: '.gitops/apps/*.yaml', baseSha: 'abc123', maxDiffLines: 300, ...input }, deps),
+    run: () => main({
+      apps: '.gitops/apps/*.yaml',
+      baseSha: 'abc123',
+      maxDiffLines: 300,
+      ...input,
+    }, deps),
   }
 }
 
@@ -96,7 +105,12 @@ describe('main', () => {
 
   it('does not fail when the render differs from the base', async () => {
     const { run } = scenario({
-      render: async (_source, root) => ({ ok: true, manifests: root === '.' ? 'replicas: 3\n' : 'replicas: 1\n' }),
+      render: async (_source, root) => ({
+        ok: true,
+        manifests: root === '.'
+          ? 'replicas: 3\n'
+          : 'replicas: 1\n',
+      }),
     })
 
     const output = await run()
@@ -121,10 +135,12 @@ describe('main', () => {
     const output = await run()
 
     expect(output.failures).toHaveLength(1)
-    expect(output.annotations).toEqual([{
-      file: '.gitops/apps/traefik.yaml',
-      message: expect.stringContaining('values don\'t meet the schema'),
-    }])
+    expect(output.annotations).toEqual([
+      {
+        file: '.gitops/apps/traefik.yaml',
+        message: expect.stringContaining('values don\'t meet the schema'),
+      },
+    ])
   })
 
   it('attempts every chart before failing, so one break cannot hide another', async () => {
@@ -164,8 +180,12 @@ describe('main', () => {
 
   it('renders the base tree with the chart version the base tree pinned', async () => {
     const { run } = scenario({
-      apps: { '.gitops/apps/argocd.yaml': application('argocd', 'argo-cd', '10.2.2') },
-      baseApps: { '.gitops/apps/argocd.yaml': application('argocd', 'argo-cd', '9.5.17') },
+      apps: {
+        '.gitops/apps/argocd.yaml': application('argocd', 'argo-cd', '10.2.2'),
+      },
+      baseApps: {
+        '.gitops/apps/argocd.yaml': application('argocd', 'argo-cd', '9.5.17'),
+      },
       render: echoRender,
     })
 
@@ -177,8 +197,12 @@ describe('main', () => {
 
   it('shows the bump in the version label when the pin moved', async () => {
     const { run } = scenario({
-      apps: { '.gitops/apps/argocd.yaml': application('argocd', 'argo-cd', '10.2.2') },
-      baseApps: { '.gitops/apps/argocd.yaml': application('argocd', 'argo-cd', '9.5.17') },
+      apps: {
+        '.gitops/apps/argocd.yaml': application('argocd', 'argo-cd', '10.2.2'),
+      },
+      baseApps: {
+        '.gitops/apps/argocd.yaml': application('argocd', 'argo-cd', '9.5.17'),
+      },
       render: echoRender,
     })
 
@@ -187,7 +211,9 @@ describe('main', () => {
 
   it('has no baseline for a chart the base tree did not declare', async () => {
     const { run } = scenario({
-      apps: { '.gitops/apps/zot.yaml': application('zot') },
+      apps: {
+        '.gitops/apps/zot.yaml': application('zot'),
+      },
       baseApps: {},
     })
 
@@ -199,7 +225,9 @@ describe('main', () => {
 
   it('ignores an Application the base tree declares and this one does not', async () => {
     const { run } = scenario({
-      apps: { '.gitops/apps/zot.yaml': application('zot') },
+      apps: {
+        '.gitops/apps/zot.yaml': application('zot'),
+      },
       baseApps: {
         '.gitops/apps/zot.yaml': application('zot'),
         '.gitops/apps/gone.yaml': application('gone'),
@@ -213,7 +241,9 @@ describe('main', () => {
 
   it('does not fail the job for an unsupported feature in the base tree only', async () => {
     const { run } = scenario({
-      apps: { '.gitops/apps/zot.yaml': application('zot') },
+      apps: {
+        '.gitops/apps/zot.yaml': application('zot'),
+      },
       baseApps: {
         '.gitops/apps/zot.yaml': application('zot').replace(
           'valueFiles:\n          - $values/.gitops/values/zot.yaml',
@@ -234,11 +264,15 @@ describe('main', () => {
 
     const output = await run()
 
-    expect(output.failures).toEqual([expect.stringContaining('no charts were rendered')])
+    expect(output.failures).toEqual([
+      expect.stringContaining('no charts were rendered'),
+    ])
   })
 
   it('degrades to no-baseline when the base commit cannot be checked out', async () => {
-    const { run } = scenario({ materializeBase: async () => null })
+    const { run } = scenario({
+      materializeBase: async () => null,
+    })
 
     const output = await run()
 
@@ -286,10 +320,12 @@ describe('main', () => {
     const output = await run()
 
     expect(output.failures).toHaveLength(1)
-    expect(output.annotations).toEqual([{
-      file: '.gitops/apps/zot.yaml',
-      message: expect.stringContaining('valuesObject'),
-    }])
+    expect(output.annotations).toEqual([
+      {
+        file: '.gitops/apps/zot.yaml',
+        message: expect.stringContaining('valuesObject'),
+      },
+    ])
     expect(output.results.find(result => result.app === 'traefik')?.outcome.status).toBe('unchanged')
   })
 

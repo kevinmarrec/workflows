@@ -20,23 +20,25 @@ describe('renderChart', () => {
 
     await renderChart(TRAEFIK, '/tmp/base', exec)
 
-    expect(calls).toEqual([{
-      command: 'helm',
-      args: [
-        'template',
-        'traefik',
-        'traefik',
-        '--repo',
-        'https://traefik.github.io/charts',
-        '--version',
-        '41.1.0',
-        '--namespace',
-        'traefik',
-        '--include-crds',
-        '-f',
-        '/tmp/base/.gitops/values/traefik.yaml',
-      ],
-    }])
+    expect(calls).toEqual([
+      {
+        command: 'helm',
+        args: [
+          'template',
+          'traefik',
+          'traefik',
+          '--repo',
+          'https://traefik.github.io/charts',
+          '--version',
+          '41.1.0',
+          '--namespace',
+          'traefik',
+          '--include-crds',
+          '-f',
+          '/tmp/base/.gitops/values/traefik.yaml',
+        ],
+      },
+    ])
   })
 
   it('includes the crds/ directory, because Argo CD applies it unless skipCrds is set', async () => {
@@ -49,7 +51,10 @@ describe('renderChart', () => {
 
   it('resolves every value file against the tree being rendered', async () => {
     const { calls, exec } = recordingExec()
-    const source = { ...TRAEFIK, valueFiles: ['.gitops/values/common.yaml', '.gitops/values/traefik.yaml'] }
+    const source = {
+      ...TRAEFIK,
+      valueFiles: ['.gitops/values/common.yaml', '.gitops/values/traefik.yaml'],
+    }
 
     await renderChart(source, '/tmp/head', exec)
 

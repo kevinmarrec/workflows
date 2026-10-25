@@ -40,7 +40,9 @@ export async function run(): Promise<void> {
 
         const dest = join(tmpdir(), `gitops-render-base-${randomUUID()}`)
 
-        return await addWorktree(sha, dest) ? dest : null
+        return await addWorktree(sha, dest)
+          ? dest
+          : null
       },
 
       cleanupBase: removeWorktree,
@@ -62,7 +64,9 @@ export async function run(): Promise<void> {
     if (output.failures.length > 0) core.setFailed(output.failures.join('\n'))
   }
   catch (error) {
-    core.setFailed(error instanceof Error ? error.message : String(error))
+    core.setFailed(error instanceof Error
+      ? error.message
+      : String(error))
   }
 }
 

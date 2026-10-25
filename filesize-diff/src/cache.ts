@@ -110,6 +110,8 @@ export async function saveCache(cachePathBase: string, cacheKey: string): Promis
     core.info('Baseline cache saved successfully (Cache reserved and uploaded)')
   }
   catch (error) {
-    core.warning(`Failed to save baseline cache: ${error instanceof Error ? error.message : String(error)}`)
+    core.warning(`Failed to save baseline cache: ${error instanceof Error
+      ? error.message
+      : String(error)}`)
   }
 }

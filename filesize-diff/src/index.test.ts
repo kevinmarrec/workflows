@@ -81,21 +81,56 @@ describe('fileGroup', () => {
 describe('groupRows', () => {
   it('sums each extension and orders by head size, largest first', () => {
     const rows = groupRows([
-      { label: 'a.js', group: 'js', base: 10, head: 20 },
-      { label: 'b.js', group: 'js', base: 10, head: 20 },
-      { label: 'a.css', group: 'css', base: 100, head: 100 },
+      {
+        label: 'a.js',
+        group: 'js',
+        base: 10,
+        head: 20,
+      },
+      {
+        label: 'b.js',
+        group: 'js',
+        base: 10,
+        head: 20,
+      },
+      {
+        label: 'a.css',
+        group: 'css',
+        base: 100,
+        head: 100,
+      },
     ])
 
     expect(rows).toEqual([
-      { group: 'css', label: '`css`', base: 100, head: 100 },
-      { group: 'js', label: '`js`', base: 20, head: 40 },
+      {
+        group: 'css',
+        label: '`css`',
+        base: 100,
+        head: 100,
+      },
+      {
+        group: 'js',
+        label: '`js`',
+        base: 20,
+        head: 40,
+      },
     ])
   })
 
   it('breaks ties on the group name, so the order is stable across runs', () => {
     const rows = groupRows([
-      { label: 'a.svg', group: 'svg', base: 0, head: 10 },
-      { label: 'a.css', group: 'css', base: 0, head: 10 },
+      {
+        label: 'a.svg',
+        group: 'svg',
+        base: 0,
+        head: 10,
+      },
+      {
+        label: 'a.css',
+        group: 'css',
+        base: 0,
+        head: 10,
+      },
     ])
 
     expect(rows.map(row => row.group)).toEqual(['css', 'svg'])
@@ -161,24 +196,39 @@ describe('baselineNote', () => {
 
 describe('buildRows', () => {
   it('labels a merged entry with how many files it covers', () => {
-    const rows = buildRows([{ file: 'assets/chunk.js', size: 300, count: 3 }], null)
+    const rows = buildRows([
+      { file: 'assets/chunk.js', size: 300, count: 3 },
+    ], null)
 
     expect(rows[0].label).toBe('assets/chunk.js (×3)')
     expect(rows[0].head).toBe(300)
   })
 
   it('leaves a single file unadorned', () => {
-    expect(buildRows([{ file: 'app.js', size: 10, count: 1 }], null)[0].label).toBe('app.js')
+    expect(buildRows([
+      { file: 'app.js', size: 10, count: 1 },
+    ], null)[0].label).toBe('app.js')
   })
 
   it('reads a baseline written before counts existed as one file per entry', () => {
-    expect(buildRows([{ file: 'app.js', size: 10 }], null)[0].label).toBe('app.js')
+    expect(buildRows([
+      { file: 'app.js', size: 10 },
+    ], null)[0].label).toBe('app.js')
   })
 
   it('keeps a file present only in the baseline, at head size 0', () => {
-    const rows = buildRows([], [{ file: 'gone.js', size: 40 }])
+    const rows = buildRows([], [
+      { file: 'gone.js', size: 40 },
+    ])
 
-    expect(rows).toEqual([{ label: 'gone.js', group: 'js', base: 40, head: 0 }])
+    expect(rows).toEqual([
+      {
+        label: 'gone.js',
+        group: 'js',
+        base: 40,
+        head: 0,
+      },
+    ])
   })
 })
 
@@ -200,7 +250,9 @@ describe('generateSection', () => {
   })
 
   it('drops the type table when one type would restate the directory total', () => {
-    const { section } = generateSection('api/dist', [{ file: 'api', size: 100 }], null)
+    const { section } = generateSection('api/dist', [
+      { file: 'api', size: 100 },
+    ], null)
 
     expect(section).not.toContain('| Type |')
     expect(section).toContain('<summary>1 entry</summary>')
@@ -230,7 +282,10 @@ describe('generateSection', () => {
   })
 
   it('reports changes when a single size moves', () => {
-    const cached = [...current.slice(0, 2), { file: 'style.css', size: 399 }]
+    const cached = [
+      ...current.slice(0, 2),
+      { file: 'style.css', size: 399 },
+    ]
 
     expect(generateSection('dist', current, cached).hasChanges).toBe(true)
   })
@@ -312,7 +367,9 @@ describe('getFileStats', () => {
 
     const result = await getFileStats(tempDir)
 
-    expect(result).toEqual([{ file: 'assets/chunk.js', size: 47, count: 3 }])
+    expect(result).toEqual([
+      { file: 'assets/chunk.js', size: 47, count: 3 },
+    ])
   })
 
   it('leaves out what the ignore patterns match', async () => {
@@ -358,7 +415,9 @@ describe('analyzeDirectory', () => {
     fs.writeFileSync(path.join(tempDir, 'test.js'), 'content')
     const cachePath = path.join(cacheDir, 'cache.json')
     const fileSize = fs.statSync(path.join(tempDir, 'test.js')).size
-    saveStats([{ file: 'test.js', size: fileSize }], cachePath)
+    saveStats([
+      { file: 'test.js', size: fileSize },
+    ], cachePath)
 
     const result = await analyzeDirectory(tempDir, cachePath)
     expect(result.hasChanges).toBe(false)

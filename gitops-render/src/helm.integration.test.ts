@@ -43,7 +43,10 @@ describe('renderChart against a published chart', () => {
     const values = `gitops-render-values-${process.pid}.yaml`
     await writeFile(join(root, values), 'fullnameOverride: renamed-by-values\n')
 
-    const result = await renderChart({ ...SEALED_SECRETS, valueFiles: [values] }, root)
+    const result = await renderChart({
+      ...SEALED_SECRETS,
+      valueFiles: [values],
+    }, root)
 
     expect(result).toMatchObject({ ok: true })
     if (!result.ok) return

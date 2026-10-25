@@ -39,13 +39,21 @@ describe('compareManifests', () => {
   it('reports a resource the chart started emitting', () => {
     const result = compareManifests('traefik', DEPLOYMENT, WITH_SERVICE_ACCOUNT, 300)
 
-    expect(result).toMatchObject({ status: 'changed', added: ['ServiceAccount/traefik'], removed: [] })
+    expect(result).toMatchObject({
+      status: 'changed',
+      added: ['ServiceAccount/traefik'],
+      removed: [],
+    })
   })
 
   it('reports a resource the chart stopped emitting', () => {
     const result = compareManifests('traefik', WITH_SERVICE_ACCOUNT, DEPLOYMENT, 300)
 
-    expect(result).toMatchObject({ status: 'changed', added: [], removed: ['ServiceAccount/traefik'] })
+    expect(result).toMatchObject({
+      status: 'changed',
+      added: [],
+      removed: ['ServiceAccount/traefik'],
+    })
   })
 
   it('reports a changed field with no added or removed resource', () => {

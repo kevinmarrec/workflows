@@ -13,7 +13,13 @@ export async function hasCommit(sha: string, exec: Exec = defaultExec): Promise<
 
 /** Checks the base commit out beside the workspace, so both trees render through the same path. */
 export async function addWorktree(sha: string, dest: string, exec: Exec = defaultExec): Promise<boolean> {
-  const { exitCode } = await exec('git', ['worktree', 'add', '--detach', dest, sha])
+  const { exitCode } = await exec('git', [
+    'worktree',
+    'add',
+    '--detach',
+    dest,
+    sha,
+  ])
 
   return exitCode === 0
 }

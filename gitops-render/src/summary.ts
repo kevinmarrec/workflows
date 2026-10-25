@@ -19,7 +19,9 @@ export interface AppResult {
  * Blank lines stay empty: trailing spaces would be indentation with nothing to indent.
  */
 function inListItem(lines: string[]): string[] {
-  return lines.map(line => line ? `  ${line}` : line)
+  return lines.map(line => line
+    ? `  ${line}`
+    : line)
 }
 
 function renderOutcome({ app, version, outcome }: AppResult): string[] {
@@ -38,7 +40,11 @@ function renderOutcome({ app, version, outcome }: AppResult): string[] {
       return [
         `${heading} — **failed to render**`,
         '',
-        ...inListItem(['```', ...outcome.stderr.split('\n'), '```']),
+        ...inListItem([
+          '```',
+          ...outcome.stderr.split('\n'),
+          '```',
+        ]),
         '',
       ]
 

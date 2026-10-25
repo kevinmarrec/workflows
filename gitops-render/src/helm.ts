@@ -30,10 +30,15 @@ export async function renderChart(source: ChartSource, root: string, exec: Exec 
     // template omits it unless asked. Without this, traefik renders 7 of the 32 objects Argo
     // deploys, and a bump that touches a CRD is invisible.
     '--include-crds',
-    ...source.valueFiles.flatMap(file => ['-f', join(root, file)]),
+    ...source.valueFiles.flatMap(file => [
+      '-f',
+      join(root, file),
+    ]),
   ]
 
   const { stdout, stderr, exitCode } = await exec('helm', args)
 
-  return exitCode === 0 ? { ok: true, manifests: stdout } : { ok: false, stderr }
+  return exitCode === 0
+    ? { ok: true, manifests: stdout }
+    : { ok: false, stderr }
 }

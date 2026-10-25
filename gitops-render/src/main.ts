@@ -56,7 +56,9 @@ function outcomeFor({ source, head, base }: Render, maxDiffLines: number): AppOu
 
 /** `argo-cd 9.5.17 → 10.2.2` when the pin moved, so the summary names the bump under review. */
 function versionLabel({ source, baseSource }: Render): string {
-  const bumpedFrom = baseSource && baseSource.revision !== source.revision ? `${baseSource.revision} → ` : ''
+  const bumpedFrom = baseSource && baseSource.revision !== source.revision
+    ? `${baseSource.revision} → `
+    : ''
 
   return `${source.chart} ${bumpedFrom}${source.revision}`
 }
@@ -94,20 +96,31 @@ export async function main(input: RunInput, deps: Deps): Promise<RunOutput> {
     failures.push(`${error.file}: ${error.message}`)
   }
 
-  const baseRoot = input.baseSha ? await deps.materializeBase(input.baseSha) : null
+  const baseRoot = input.baseSha
+    ? await deps.materializeBase(input.baseSha)
+    : null
   const renders: Render[] = []
 
   try {
     // The base tree is parsed from its own manifests, so a chart bump renders the version each
     // commit actually pinned. Its guard failures are discarded: the base may predate a guard, or
     // use a feature this very commit removes, and neither is this commit's problem.
-    const baseSources = baseRoot ? (await collectSources(baseRoot, input, deps)).sources : []
-    const baseByKey = new Map(baseSources.map(source => [sourceKey(source), source]))
+    const baseSources = baseRoot
+      ? (await collectSources(baseRoot, input, deps)).sources
+      : []
+    const baseByKey = new Map(baseSources.map(source => [
+      sourceKey(source),
+      source,
+    ]))
 
     // Every head render is attempted first, so one broken chart cannot hide a second.
     for (const source of sources) {
       const head = await deps.render(source, '.', 'head')
-      renders.push({ source, baseSource: baseByKey.get(sourceKey(source)), head })
+      renders.push({
+        source,
+        baseSource: baseByKey.get(sourceKey(source)),
+        head,
+      })
 
       if (!head.ok) {
         annotations.push({ file: source.file, message: `${source.chart} ${source.revision} failed to render\n${head.stderr}` })
