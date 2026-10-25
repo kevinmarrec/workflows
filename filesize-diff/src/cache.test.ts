@@ -27,7 +27,9 @@ function pushTo(branch: string, defaultBranch = 'main') {
     ref: `refs/heads/${branch}`,
     sha: 'abc123',
     eventName: 'push',
-    payload: { repository: { default_branch: defaultBranch } },
+    payload: {
+      repository: { default_branch: defaultBranch },
+    },
   })
 }
 
@@ -37,7 +39,12 @@ function pullRequestInto(base: string, defaultBranch = 'main') {
     ref: 'refs/pull/7/merge',
     sha: 'abc123',
     eventName: 'pull_request',
-    payload: { repository: { default_branch: defaultBranch }, pull_request: { base: { ref: base } } },
+    payload: {
+      repository: { default_branch: defaultBranch },
+      pull_request: {
+        base: { ref: base },
+      },
+    },
   })
 }
 
@@ -56,7 +63,9 @@ describe('loadCachedStats', () => {
     expect(loadCachedStats(path.join(tempDir, 'nonexistent.json'))).toBeNull()
 
     const cachePath = path.join(tempDir, 'cache.json')
-    const stats: FileStat[] = [{ file: 'index.html', size: 100 }]
+    const stats: FileStat[] = [
+      { file: 'index.html', size: 100 },
+    ]
     fs.writeFileSync(cachePath, JSON.stringify(stats, null, 2))
     expect(loadCachedStats(cachePath)).toEqual(stats)
 
@@ -78,7 +87,9 @@ describe('saveStats', () => {
 
   it('should save stats and create directories', () => {
     const cachePath = path.join(tempDir, 'nested', 'dir', 'cache.json')
-    const stats: FileStat[] = [{ file: 'test.js', size: 50 }]
+    const stats: FileStat[] = [
+      { file: 'test.js', size: 50 },
+    ]
     saveStats(stats, cachePath)
     expect(fs.existsSync(cachePath)).toBe(true)
     expect(JSON.parse(fs.readFileSync(cachePath, 'utf-8'))).toEqual(stats)

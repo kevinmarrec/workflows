@@ -19,9 +19,13 @@ interface Resource {
 export function resourceKeys(manifests: string): string[] {
   const keys = parseAllDocuments(manifests)
     .map(document => document.toJS() as Resource | null)
-    .flatMap(resource => resource?.kind && resource.metadata?.name ? [`${resource.kind}/${resource.metadata.name}`] : [])
+    .flatMap(resource => resource?.kind && resource.metadata?.name
+      ? [`${resource.kind}/${resource.metadata.name}`]
+      : [])
 
-  return [...new Set(keys)].sort()
+  return [
+    ...new Set(keys),
+  ].sort()
 }
 
 function truncate(patch: string, maxDiffLines: number): string {
@@ -29,7 +33,10 @@ function truncate(patch: string, maxDiffLines: number): string {
 
   if (lines.length <= maxDiffLines) return patch
 
-  return [...lines.slice(0, maxDiffLines), `... ${lines.length - maxDiffLines} more lines`].join('\n')
+  return [
+    ...lines.slice(0, maxDiffLines),
+    `... ${lines.length - maxDiffLines} more lines`,
+  ].join('\n')
 }
 
 export function compareManifests(app: string, base: string, head: string, maxDiffLines: number): Comparison {

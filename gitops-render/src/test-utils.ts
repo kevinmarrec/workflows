@@ -6,7 +6,12 @@ export function recordingExec(result: Partial<Awaited<ReturnType<Exec>>> = {}) {
 
   const exec: Exec = async (command, args) => {
     calls.push({ command, args })
-    return { stdout: '', stderr: '', exitCode: 0, ...result }
+    return {
+      stdout: '',
+      stderr: '',
+      exitCode: 0,
+      ...result,
+    }
   }
 
   return { calls, exec }

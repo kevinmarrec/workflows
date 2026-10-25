@@ -76,7 +76,9 @@ describe('main function integration', () => {
     vi.mocked(cache.restoreCache).mockResolvedValue(undefined)
     vi.mocked(cache.saveCache).mockResolvedValue(0)
     Object.assign(github.context, {
-      payload: { repository: { default_branch: 'main' } },
+      payload: {
+        repository: { default_branch: 'main' },
+      },
       ref: 'refs/heads/main',
       eventName: 'push',
       sha: 'abc123',
@@ -107,7 +109,9 @@ describe('main function integration', () => {
     Object.assign(github.context, {
       payload: {
         repository: { default_branch: 'main' },
-        pull_request: { base: { ref: 'main' } },
+        pull_request: {
+          base: { ref: 'main' },
+        },
       },
       ref: 'refs/pull/7/merge',
       eventName: 'pull_request',
@@ -150,7 +154,9 @@ describe('main function integration', () => {
     vi.mocked(cache.restoreCache).mockResolvedValue(undefined)
     vi.mocked(github.getOctokit).mockReturnValue(mockOctokit as any)
     Object.assign(github.context, {
-      payload: { repository: { default_branch: 'main' } },
+      payload: {
+        repository: { default_branch: 'main' },
+      },
       ref: 'refs/heads/feature',
       eventName: 'pull_request',
       issue: { number: 123 },
@@ -181,7 +187,9 @@ describe('main function integration', () => {
     vi.mocked(cache.restoreCache).mockResolvedValue(undefined)
     vi.mocked(cache.saveCache).mockRejectedValue(new Error('Cache save failed'))
     Object.assign(github.context, {
-      payload: { repository: { default_branch: 'main' } },
+      payload: {
+        repository: { default_branch: 'main' },
+      },
       ref: 'refs/heads/main',
       eventName: 'push',
       sha: 'abc123',
@@ -243,7 +251,9 @@ describe('main function integration', () => {
     vi.mocked(cache.restoreCache).mockResolvedValue(undefined)
     vi.mocked(cache.saveCache).mockResolvedValue(0)
     Object.assign(github.context, {
-      payload: { repository: { default_branch: 'main' } },
+      payload: {
+        repository: { default_branch: 'main' },
+      },
       ref: 'refs/heads/feature',
       eventName: 'pull_request',
       sha: 'abc123',
@@ -266,7 +276,9 @@ describe('main function integration', () => {
     // Create cache file that will be restored
     const cachePath = path.join(cacheDir, 'dir1.json')
     fs.mkdirSync(path.dirname(cachePath), { recursive: true })
-    fs.writeFileSync(cachePath, JSON.stringify([{ file: 'file1.js', size: fileSize }], null, 2))
+    fs.writeFileSync(cachePath, JSON.stringify([
+      { file: 'file1.js', size: fileSize },
+    ], null, 2))
 
     vi.mocked(core.getInput).mockImplementation((name: string) => {
       if (name === 'directories') return dir1
@@ -278,7 +290,9 @@ describe('main function integration', () => {
     const infoSpy = vi.mocked(core.info).mockImplementation(() => {})
     vi.mocked(cache.restoreCache).mockResolvedValue('cache-hit')
     Object.assign(github.context, {
-      payload: { repository: { default_branch: 'main' } },
+      payload: {
+        repository: { default_branch: 'main' },
+      },
       ref: 'refs/heads/feature',
       eventName: 'pull_request',
       sha: 'abc123',
@@ -315,7 +329,9 @@ describe('main function integration', () => {
       vi.mocked(core.info).mockImplementation(() => {})
       vi.mocked(cache.restoreCache).mockResolvedValue(undefined)
       Object.assign(github.context, {
-        payload: { repository: { default_branch: 'main' } },
+        payload: {
+          repository: { default_branch: 'main' },
+        },
         ref: 'refs/heads/feature',
         eventName: 'pull_request',
         sha: 'abc123',

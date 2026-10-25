@@ -56,7 +56,9 @@ export function normalizeAssetFilename(file: string): string {
 export function fileGroup(file: string): string {
   const base = file.split('/').pop()!
   const dot = base.lastIndexOf('.')
-  return dot > 0 ? base.slice(dot + 1).toLowerCase() : base
+  return dot > 0
+    ? base.slice(dot + 1).toLowerCase()
+    : base
 }
 
 export async function getFileStats(directory: string, ignore: string[] = []): Promise<FileStat[]> {
@@ -78,7 +80,9 @@ export async function getFileStats(directory: string, ignore: string[] = []): Pr
     merged.set(file, { file, size: (previous?.size ?? 0) + size, count: (previous?.count ?? 0) + 1 })
   }
 
-  return [...merged.values()]
+  return [
+    ...merged.values(),
+  ]
 }
 
 export function formatDiff(currentSize: number, cachedSize: number): string {
@@ -89,8 +93,12 @@ export function formatDiff(currentSize: number, cachedSize: number): string {
   if (diffSize === 0) return '➖'
 
   const diffPercent = ((diffSize / cachedSize) * 100).toFixed(2)
-  const sign = diffSize > 0 ? '+' : ''
-  const indicator = diffSize > 0 ? '🔺' : '✅'
+  const sign = diffSize > 0
+    ? '+'
+    : ''
+  const indicator = diffSize > 0
+    ? '🔺'
+    : '✅'
   return `${sign}${filesize(diffSize)} (${sign}${diffPercent}%) ${indicator}`
 }
 
@@ -168,22 +176,36 @@ export function groupRows(rows: (Row & { group: string })[]): (Row & { group: st
   const groups = new Map<string, Row & { group: string }>()
 
   for (const { group, base, head } of rows) {
-    const previous = groups.get(group) ?? { group, label: `\`${group}\``, base: 0, head: 0 }
+    const previous = groups.get(group) ?? {
+      group,
+      label: `\`${group}\``,
+      base: 0,
+      head: 0,
+    }
     groups.set(group, { ...previous, base: previous.base + base, head: previous.head + head })
   }
 
-  return [...groups.values()].sort((a, b) => b.head - a.head || a.group.localeCompare(b.group))
+  return [
+    ...groups.values(),
+  ].sort((a, b) => b.head - a.head || a.group.localeCompare(b.group))
 }
 
 export function buildRows(current: FileStat[], cached: FileStat[] | null): (Row & { group: string })[] {
   const currentMap = new Map(current.map(s => [s.file, s]))
   const cachedMap = new Map((cached ?? []).map(s => [s.file, s]))
 
-  return [...new Set([...currentMap.keys(), ...cachedMap.keys()])].map((file) => {
+  return [
+    ...new Set([
+      ...currentMap.keys(),
+      ...cachedMap.keys(),
+    ]),
+  ].map((file) => {
     const count = (currentMap.get(file) ?? cachedMap.get(file))?.count ?? 1
 
     return {
-      label: count > 1 ? `${file} (×${count})` : file,
+      label: count > 1
+        ? `${file} (×${count})`
+        : file,
       group: fileGroup(file),
       base: cachedMap.get(file)?.size ?? 0,
       head: currentMap.get(file)?.size ?? 0,
@@ -223,7 +245,9 @@ export function generateSection(directory: string, current: FileStat[], cached: 
 
   parts.push(
     '<details>',
-    `<summary>${entries} ${entries === 1 ? 'entry' : 'entries'}</summary>`,
+    `<summary>${entries} ${entries === 1
+      ? 'entry'
+      : 'entries'}</summary>`,
     '',
     generateTable('File', files, hasCache),
     '',
@@ -251,7 +275,9 @@ export async function analyzeDirectory(
   const currentStats = await getFileStats(directory, ignore)
 
   // Load cached stats
-  const cachedStats = fs.existsSync(cachePath) ? loadCachedStats(cachePath) : null
+  const cachedStats = fs.existsSync(cachePath)
+    ? loadCachedStats(cachePath)
+    : null
 
   // Save current stats
   saveStats(currentStats, cachePath)
@@ -315,6 +341,8 @@ export async function run(): Promise<void> {
     await saveCache(cachePathBase, cacheKey)
   }
   catch (error) {
-    core.setFailed(error instanceof Error ? error.message : String(error))
+    core.setFailed(error instanceof Error
+      ? error.message
+      : String(error))
   }
 }

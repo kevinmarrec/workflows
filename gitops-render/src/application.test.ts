@@ -70,15 +70,17 @@ spec:
 
 describe('chartSources', () => {
   it('extracts the chart leg of a multi-source Application', () => {
-    expect(chartSources(TRAEFIK, FILE)).toEqual([{
-      app: 'traefik',
-      file: FILE,
-      namespace: 'traefik',
-      repo: 'https://traefik.github.io/charts',
-      chart: 'traefik',
-      revision: '41.1.0',
-      valueFiles: ['.gitops/values/traefik.yaml'],
-    }])
+    expect(chartSources(TRAEFIK, FILE)).toEqual([
+      {
+        app: 'traefik',
+        file: FILE,
+        namespace: 'traefik',
+        repo: 'https://traefik.github.io/charts',
+        chart: 'traefik',
+        revision: '41.1.0',
+        valueFiles: ['.gitops/values/traefik.yaml'],
+      },
+    ])
   })
 
   it('skips a manifest that is not an Application', () => {
@@ -87,7 +89,12 @@ describe('chartSources', () => {
 
   it('skips an Application whose only source is a repository path', () => {
     const manifest = app({
-      source: { repoURL: 'https://github.com/kevinmarrec/blueprint', targetRevision: 'HEAD', path: '.gitops/manifests/blueprint', directory: { recurse: true } },
+      source: {
+        repoURL: 'https://github.com/kevinmarrec/blueprint',
+        targetRevision: 'HEAD',
+        path: '.gitops/manifests/blueprint',
+        directory: { recurse: true },
+      },
       destination: DESTINATION,
     })
 
@@ -96,7 +103,14 @@ describe('chartSources', () => {
 
   it('rejects a chart source using helm.valuesObject', () => {
     const manifest = app({
-      sources: [{ ...CHART, helm: { valuesObject: { replicas: 2 } } }],
+      sources: [
+        {
+          ...CHART,
+          helm: {
+            valuesObject: { replicas: 2 },
+          },
+        },
+      ],
       destination: DESTINATION,
     })
 
@@ -106,7 +120,16 @@ describe('chartSources', () => {
 
   it('rejects a chart source using helm.parameters', () => {
     const manifest = app({
-      sources: [{ ...CHART, helm: { parameters: [{ name: 'replicas', value: '2' }] } }],
+      sources: [
+        {
+          ...CHART,
+          helm: {
+            parameters: [
+              { name: 'replicas', value: '2' },
+            ],
+          },
+        },
+      ],
       destination: DESTINATION,
     })
 
@@ -114,25 +137,41 @@ describe('chartSources', () => {
   })
 
   it('rejects a chart source with no destination namespace', () => {
-    const manifest = app({ sources: [CHART], destination: { server: 'https://kubernetes.default.svc' } })
+    const manifest = app({
+      sources: [CHART],
+      destination: { server: 'https://kubernetes.default.svc' },
+    })
 
     expect(() => chartSources(manifest, FILE)).toThrow(UnsupportedSourceError)
   })
 
   it('rejects a chart source with no repoURL', () => {
-    const manifest = app({ sources: [{ ...CHART, repoURL: undefined }], destination: DESTINATION })
+    const manifest = app({
+      sources: [
+        { ...CHART, repoURL: undefined },
+      ],
+      destination: DESTINATION,
+    })
 
     expect(() => chartSources(manifest, FILE)).toThrow(UnsupportedSourceError)
   })
 
   it('rejects a chart source with no targetRevision', () => {
-    const manifest = app({ sources: [{ ...CHART, targetRevision: undefined }], destination: DESTINATION })
+    const manifest = app({
+      sources: [
+        { ...CHART, targetRevision: undefined },
+      ],
+      destination: DESTINATION,
+    })
 
     expect(() => chartSources(manifest, FILE)).toThrow(UnsupportedSourceError)
   })
 
   it('renders a chart source that declares no helm block', () => {
-    const manifest = app({ sources: [CHART], destination: DESTINATION })
+    const manifest = app({
+      sources: [CHART],
+      destination: DESTINATION,
+    })
 
     expect(chartSources(manifest, FILE)[0].valueFiles).toEqual([])
   })
@@ -142,7 +181,14 @@ describe('chartSources', () => {
   })
 
   it('names an unrecognised source even when it has no repoURL', () => {
-    const manifest = app({ sources: [{ plugin: { name: 'kustomize-build' } }], destination: DESTINATION })
+    const manifest = app({
+      sources: [
+        {
+          plugin: { name: 'kustomize-build' },
+        },
+      ],
+      destination: DESTINATION,
+    })
 
     expect(() => chartSources(manifest, FILE))
       .toThrow('source (no repoURL) is neither a chart, a repository path, nor a values ref')
@@ -150,7 +196,13 @@ describe('chartSources', () => {
 
   it('rejects a source that is neither a chart, a path, nor a values ref', () => {
     const manifest = app({
-      sources: [{ repoURL: 'https://github.com/kevinmarrec/blueprint', targetRevision: 'HEAD', plugin: { name: 'kustomize-build' } }],
+      sources: [
+        {
+          repoURL: 'https://github.com/kevinmarrec/blueprint',
+          targetRevision: 'HEAD',
+          plugin: { name: 'kustomize-build' },
+        },
+      ],
       destination: DESTINATION,
     })
 

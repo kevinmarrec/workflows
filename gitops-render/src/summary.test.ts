@@ -10,7 +10,11 @@ const unchanged: AppResult = {
 
 describe('renderSummary', () => {
   it('counts rendered charts and failures in the header', () => {
-    const failed: AppResult = { app: 'zot', version: 'zot 0.1.70', outcome: { status: 'failed', stderr: 'Error: chart not found' } }
+    const failed: AppResult = {
+      app: 'zot',
+      version: 'zot 0.1.70',
+      outcome: { status: 'failed', stderr: 'Error: chart not found' },
+    }
 
     expect(renderSummary([unchanged, failed])).toContain('`1` chart(s) rendered, `1` failure(s).')
   })
@@ -20,16 +24,18 @@ describe('renderSummary', () => {
   })
 
   it('lists added and removed resources for a changed chart', () => {
-    const summary = renderSummary([{
-      app: 'traefik',
-      version: 'traefik 41.1.0',
-      outcome: {
-        status: 'changed',
-        added: ['ServiceAccount/traefik'],
-        removed: ['Ingress/traefik-dashboard'],
-        patch: '@@ -1 +1 @@',
+    const summary = renderSummary([
+      {
+        app: 'traefik',
+        version: 'traefik 41.1.0',
+        outcome: {
+          status: 'changed',
+          added: ['ServiceAccount/traefik'],
+          removed: ['Ingress/traefik-dashboard'],
+          patch: '@@ -1 +1 @@',
+        },
       },
-    }])
+    ])
 
     expect(summary).toContain('- **traefik** (traefik 41.1.0) — changed')
     expect(summary).toContain('- added: `ServiceAccount/traefik`')
@@ -37,11 +43,18 @@ describe('renderSummary', () => {
   })
 
   it('puts the patch of a changed chart behind a details block', () => {
-    const summary = renderSummary([{
-      app: 'traefik',
-      version: 'traefik 41.1.0',
-      outcome: { status: 'changed', added: [], removed: [], patch: '@@ -1 +1 @@\n-a\n+b' },
-    }])
+    const summary = renderSummary([
+      {
+        app: 'traefik',
+        version: 'traefik 41.1.0',
+        outcome: {
+          status: 'changed',
+          added: [],
+          removed: [],
+          patch: '@@ -1 +1 @@\n-a\n+b',
+        },
+      },
+    ])
 
     expect(summary).toContain('  <details><summary>render diff</summary>')
     expect(summary).toContain('  ```diff\n  @@ -1 +1 @@\n  -a\n  +b\n  ```')
@@ -49,8 +62,21 @@ describe('renderSummary', () => {
 
   it('indents the diff into the list item, so the summary stays one list', () => {
     const summary = renderSummary([
-      { app: 'traefik', version: 'traefik 41.1.0', outcome: { status: 'changed', added: [], removed: [], patch: '-a' } },
-      { app: 'zot', version: 'zot 0.1.70', outcome: { status: 'unchanged' } },
+      {
+        app: 'traefik',
+        version: 'traefik 41.1.0',
+        outcome: {
+          status: 'changed',
+          added: [],
+          removed: [],
+          patch: '-a',
+        },
+      },
+      {
+        app: 'zot',
+        version: 'zot 0.1.70',
+        outcome: { status: 'unchanged' },
+      },
     ])
 
     // A block left at column 0 closes the list, and the next chart opens a second one.
@@ -61,19 +87,34 @@ describe('renderSummary', () => {
   })
 
   it('leaves the blank lines of a patch empty rather than padding them', () => {
-    const summary = renderSummary([{
-      app: 'traefik',
-      version: 'traefik 41.1.0',
-      outcome: { status: 'changed', added: [], removed: [], patch: 'a\n\nb' },
-    }])
+    const summary = renderSummary([
+      {
+        app: 'traefik',
+        version: 'traefik 41.1.0',
+        outcome: {
+          status: 'changed',
+          added: [],
+          removed: [],
+          patch: 'a\n\nb',
+        },
+      },
+    ])
 
     expect(summary).toContain('  a\n\n  b')
   })
 
   it('distinguishes a base commit that failed to render from one that never existed', () => {
     const results: AppResult[] = [
-      { app: 'sealed-secrets', version: 'sealed-secrets 2.18.0', outcome: { status: 'no-baseline', reason: 'render-failed' } },
-      { app: 'umami', version: 'umami 0.20.0', outcome: { status: 'no-baseline', reason: 'missing' } },
+      {
+        app: 'sealed-secrets',
+        version: 'sealed-secrets 2.18.0',
+        outcome: { status: 'no-baseline', reason: 'render-failed' },
+      },
+      {
+        app: 'umami',
+        version: 'umami 0.20.0',
+        outcome: { status: 'no-baseline', reason: 'missing' },
+      },
     ]
 
     const summary = renderSummary(results)
@@ -83,22 +124,26 @@ describe('renderSummary', () => {
   })
 
   it('reports a failed chart with its helm error', () => {
-    const summary = renderSummary([{
-      app: 'zot',
-      version: 'zot 0.1.70',
-      outcome: { status: 'failed', stderr: 'Error: values don\'t meet the schema' },
-    }])
+    const summary = renderSummary([
+      {
+        app: 'zot',
+        version: 'zot 0.1.70',
+        outcome: { status: 'failed', stderr: 'Error: values don\'t meet the schema' },
+      },
+    ])
 
     expect(summary).toContain('- **zot** (zot 0.1.70) — **failed to render**')
     expect(summary).toContain('  ```\n  Error: values don\'t meet the schema\n  ```')
   })
 
   it('indents multi-line helm stderr, so the fence is not broken', () => {
-    const summary = renderSummary([{
-      app: 'zot',
-      version: 'zot 0.1.70',
-      outcome: { status: 'failed', stderr: 'Error: one\nError: two' },
-    }])
+    const summary = renderSummary([
+      {
+        app: 'zot',
+        version: 'zot 0.1.70',
+        outcome: { status: 'failed', stderr: 'Error: one\nError: two' },
+      },
+    ])
 
     expect(summary).toContain('  Error: one\n  Error: two')
   })
