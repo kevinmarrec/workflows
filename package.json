@@ -19,14 +19,14 @@
     "test:coverage": "vitest --coverage"
   },
   "devDependencies": {
-    "@kevinmarrec/eslint-config": "^1.27.0",
-    "@kevinmarrec/tsconfig": "^1.27.0",
+    "@kevinmarrec/eslint-config": "^1.28.0",
+    "@kevinmarrec/tsconfig": "^1.28.0",
     "@types/node": "^26.6.6",
-    "@vitest/coverage-v8": "5.0.5",
+    "@vitest/coverage-v8": "5.1.0",
     "eslint": "^10.14.0",
-    "knip": "^6.44.0",
+    "knip": "^6.44.1",
     "typescript": "~6.0.3",
-    "vitest": "^5.0.5"
+    "vitest": "^5.1.0"
   },
   "simple-git-hooks": {
     "pre-commit": "echo 'Pre-commit checks' && bun run check:artifacts"
